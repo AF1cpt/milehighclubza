@@ -16,13 +16,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en-ZA">
       <body className="antialiased min-h-screen flex flex-col">
         <header className="border-b border-line">
-          <nav className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
+          <nav className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between gap-4">
             <Link href="/" className="font-semibold text-lg tracking-tight">
               {site.name}
             </Link>
-            <div className="flex gap-5 text-sm text-ink-soft">
+            <div className="flex gap-4 sm:gap-5 text-sm text-ink-soft whitespace-nowrap">
               <Link href="/flights" className="hover:text-ink">Routes</Link>
-              <Link href="/how-we-make-money" className="hover:text-ink">How we make money</Link>
+              <Link href="/how-we-make-money" className="hover:text-ink">
+                <span className="sm:hidden">How we earn</span>
+                <span className="hidden sm:inline">How we make money</span>
+              </Link>
             </div>
           </nav>
         </header>
