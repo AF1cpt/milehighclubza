@@ -1,0 +1,289 @@
+# MilehighclubZA
+
+**Cheapest flights from South Africa, found fast.**
+
+MilehighclubZA is a flight meta-search site for South African travellers. It shows the cheapest recently-found
+fares for domestic routes (Johannesburg, Cape Town, Durban, Gqeberha and more) and international flights from
+JNB/CPT, then sends the traveller to a booking partner. **We earn affiliate commission on bookings made through
+our links.** We never sell tickets and we never scrape airline or travel sites.
+
+| | |
+|---|---|
+| **Stack** | Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Supabase Postgres · Vitest |
+| **Hosting** | Vercel (free tier is enough to launch) |
+| **Fare data** | Travelpayouts / Aviasales Data API (cached prices), with a labelled demo fallback |
+| **Revenue** | Travelstart (flat rand per booking) and Aviasales (revenue share) affiliate click-outs |
+| **Status** | MVP complete, running in demo mode until partner credentials are added |
+
+---
+
+## Contents
+
+1. [Quick start](#quick-start)
+2. [Scripts](#scripts)
+3. [Environment variables](#environment-variables)
+4. [What's in the MVP](#whats-in-the-mvp)
+5. [How it works](#how-it-works)
+6. [Project structure](#project-structure)
+7. [Database](#database)
+8. [Testing](#testing)
+9. [Deploying](#deploying)
+10. [Go-live checklist](#go-live-checklist)
+11. [Common tasks](#common-tasks)
+12. [Compliance](#compliance)
+13. [Troubleshooting](#troubleshooting)
+14. [Working with Claude Code](#working-with-claude-code)
+
+---
+
+## Quick start
+
+Requires **Node.js 20.9+** (22 recommended, see `.nvmrc`).
+
+```bash
+git clone https://github.com/AF1cpt/milehighclubza.git
+cd milehighclubza
+npm install
+cp .env.example .env.local      # Windows PowerShell: Copy-Item .env.example .env.local
+npm run dev                     # http://localhost:3000
+```
+
+With an empty `.env.local` the site runs in **demo mode**. Every page works, prices are realistic sample data,
+and a yellow banner on every fare page says so. You can build, test and deploy before any partner has approved you.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Local dev server with hot reload |
+| `npm run build` | Production build (pre-renders all route pages) |
+| `npm start` | Serve the production build |
+| `npm test` | Unit and integration tests (Vitest) |
+| `npm run lint` | ESLint (Next.js rules) |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run check` | All four of the above, the same as CI. Run before every push |
+
+## Environment variables
+
+Copy `.env.example` to `.env.local` and fill values in as partner approvals land. Every one is optional; the site
+degrades gracefully without it.
+
+| Variable | Without it | With it | Where to get it |
+|---|---|---|---|
+| `TRAVELPAYOUTS_TOKEN` | Demo mode: sample prices + banner | Real cached fares from Aviasales | Travelpayouts → Profile → API token |
+| `TRAVELPAYOUTS_MARKER` | Aviasales clicks don't earn | Commission on Aviasales bookings | Travelpayouts → your partner ID (marker) |
+| `TRAVELSTART_AFFILIATE_LINK` | Travelstart button hidden | "View on Travelstart" shown first | Impact → Travelstart → tracking link |
+| `SUPABASE_URL` | Clicks logged to server console | Clicks stored in Postgres | Supabase → Project settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | (as above) | (as above) | Supabase → Project settings → API → `service_role` |
+| `NEXT_PUBLIC_SITE_URL` | Canonicals point at localhost | Correct canonicals and sitemap | Your domain, e.g. `https://milehighclub.co.za` |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Placeholder email on privacy page | Real contact for POPIA requests | Your inbox |
+
+> **Never** commit `.env.local` or expose `SUPABASE_SERVICE_ROLE_KEY` to the browser. Only `NEXT_PUBLIC_*`
+> variables reach the client. `.gitignore` already excludes every `.env*` file except `.env.example`.
+
+## What's in the MVP
+
+- **Search**: return or one-way between 18 airports. Results show your exact dates plus a "cheaper if you're
+  flexible this month" list. One "Cheapest" badge marks the lowest price on the page.
+- **44 route pages**, e.g. `/flights/johannesburg-to-cape-town`, built for Google:
+  - cheapest 5 dates over the next 3 months
+  - a price calendar per month (tap a bar to search that day; green is the cheapest day)
+  - FAQ answers generated from real data: cheapest month, cheapest weekday, airlines seen
+  - Breadcrumb and FAQ structured data (JSON-LD), canonical URLs, refreshed every 6 hours
+- **Routes index** at `/flights`, split into domestic and international.
+- **Click-out tracking** at `/go`: every partner click gets a unique sub-ID so commissions can be traced back to
+  the exact page and route that earned them.
+- **Compliance**: affiliate disclosure (`/how-we-make-money`), POPIA privacy draft (`/privacy`), cookie consent
+  banner, "found Xh ago · price may have changed" on every fare.
+- **SEO plumbing**: `sitemap.xml`, `robots.txt` (blocks `/go` and `/search` from indexing), Open Graph metadata.
+- **Performance**: about 108 kB per page, no client-side data fetching, which suits prepaid mobile data.
+
+## How it works
+
+### A search, end to end
+
+```
+Browser ── /search?o=JNB&d=CPT&dep=2026-11-14&ret=2026-11-18
+   │
+   ▼
+search/page.tsx (server)  ──►  getFareProvider()
+                                  ├─ TRAVELPAYOUTS_TOKEN set → TravelpayoutsProvider
+                                  │     GET api.travelpayouts.com/aviasales/v3/prices_for_dates
+                                  │     (token in header, currency=zar, cached 1h by Next)
+                                  └─ not set → SampleProvider (deterministic demo prices)
+   │
+   ▼
+FareList → "View on Travelstart / Aviasales" → /go?p=…&o=…&d=…&dep=…
+```
+
+### A click-out, end to end
+
+```
+/go?p=aviasales&o=JNB&d=CPT&dep=2026-11-14&price=1890&src=route:johannesburg-to-cape-town
+   │ 1. validate: known partner, known airports, origin ≠ destination, real dates
+   │    (anything invalid → redirect home, nothing logged)
+   │ 2. generate sub-ID (16 hex chars)
+   │ 3. build the partner URL on the server (never from user input, so no open redirect)
+   │ 4. log click → Supabase `clicks` (or console if not configured; a failed log never blocks the user)
+   ▼
+302 → https://www.aviasales.com/search/JNB1411CPT1?marker=…&sub_id=<sub-ID>
+```
+
+When the partner reports a booking, its report carries the same sub-ID. Import it into `conversions` and the
+`revenue_by_page` view shows which pages actually make money.
+
+### Why cached prices, not live
+
+Live flight-search APIs (Skyscanner, Aviasales Search, Kiwi) need 50k–100k monthly users before they'll grant
+access. The Travelpayouts Data API is open from day one but returns prices other users found recently. That's
+why every price says when it was found and that it may have changed. See `docs/ROADMAP.md` for when the live
+APIs unlock.
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── page.tsx                  Home: search + popular routes
+│   ├── search/page.tsx           Search results (not indexed)
+│   ├── flights/page.tsx          All routes index
+│   ├── flights/[slug]/page.tsx   SEO route pages (ISR, 6h)
+│   ├── go/route.ts               Click-out: validate → log → 302
+│   ├── how-we-make-money/        Affiliate disclosure
+│   ├── privacy/                  POPIA privacy policy (draft)
+│   ├── sitemap.ts · robots.ts    SEO
+│   ├── layout.tsx · globals.css  Shell, footer disclosure, theme
+├── components/
+│   ├── SearchForm.tsx            Client form with validation
+│   ├── FareList.tsx              Fare cards + partner buttons
+│   ├── PriceCalendar.tsx         CSS-only month bar chart
+│   ├── DemoBanner.tsx            Shown whenever sample data is in use
+│   └── CookieConsent.tsx         POPIA consent banner
+├── config/site.ts                Brand name, URL, locale (rename the site here only)
+├── data/
+│   ├── airports.ts               Supported airports
+│   └── routes.ts                 Published route pages (`routePairs`)
+└── lib/
+    ├── fares/                    FareProvider interface, Travelpayouts, Sample, helpers
+    ├── deeplinks.ts              Partner URL builders + sub-IDs
+    ├── clicks.ts                 Click logging (Supabase or console)
+    └── format.ts                 Rand, dates, "time ago", airline names
+supabase/migrations/              Database schema
+tests/                            Vitest suites (one per module)
+docs/ROADMAP.md                   What to build next, and at what traffic level
+CLAUDE.md                         Rules and map for Claude Code
+```
+
+## Database
+
+Supabase project **milehighclubza** (London region). The schema lives in
+`supabase/migrations/0001_clicks_and_conversions.sql` and is already applied.
+
+| Object | Purpose |
+|---|---|
+| `clicks` | One row per partner click. `id` is the sub-ID sent to the partner |
+| `conversions` | Partner-reported bookings, imported later, joined on `sub_id` |
+| `revenue_by_page` | View: clicks, bookings and commission per source page |
+
+Row-level security is **on** with no public policies, so only the server (service role key) can read or write.
+The Supabase linter reports this as "RLS enabled, no policy" at INFO level; that's intentional.
+
+To recreate it elsewhere, paste the migration into the Supabase SQL editor, or run `supabase db push` with the CLI.
+
+## Testing
+
+```bash
+npm test          # 40 tests, about 2 seconds
+npm run check     # lint + typecheck + tests + build, same as CI
+```
+
+| File | Covers |
+|---|---|
+| `tests/format.test.ts` | Brand config, rand formatting, dates, "time ago", airline names |
+| `tests/routes.test.ts` | Airport data integrity, route slugs, both directions, domestic flag |
+| `tests/fares.test.ts` | Travelpayouts normalising, token kept out of URLs, error handling, sample data, helpers |
+| `tests/deeplinks.test.ts` | Partner URL formats, sub-IDs, Travelstart toggle, device detection |
+| `tests/go.test.ts` | Full `/go` handler: redirect, logging, unique sub-IDs, 8 rejection cases, no-cache headers |
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests, build and `npm audit` on every push and PR.
+
+**Manual smoke test** after `npm run build && npm start`:
+
+1. `/`: search JNB → CPT, return. Results load, one "Cheapest" badge.
+2. `/flights/johannesburg-to-cape-town`: 3 calendars, tapping a bar opens a search for that day.
+3. Click "View on Aviasales": a new tab opens on aviasales.com and the server logs a `[click]` line.
+4. `/flights/johannesburg-to-atlantis`: 404.
+5. `/go?p=evil&o=JNB&d=CPT&dep=2026-11-14`: redirects home.
+6. Resize to phone width: no sideways scrolling, buttons full width.
+
+## Deploying
+
+1. Import `AF1cpt/milehighclubza` at [vercel.com/new](https://vercel.com/new). The framework is detected automatically.
+2. Add the environment variables (Production). At minimum set `NEXT_PUBLIC_SITE_URL`.
+3. Deploy. Add your domain under Project → Domains.
+4. In Google Search Console, verify the domain and submit `https://<domain>/sitemap.xml`.
+
+Route pages are pre-rendered at build and refreshed every 6 hours (ISR), so most visits never touch the fare API.
+
+## Go-live checklist
+
+- [ ] Domain bought and connected, `NEXT_PUBLIC_SITE_URL` set
+- [ ] Travelpayouts approved → `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` set → demo banner gone
+- [ ] Travelstart (Impact) approved → `TRAVELSTART_AFFILIATE_LINK` set
+- [ ] Supabase keys set → a test click appears in `clicks`
+- [ ] Verify the items marked `VERIFY` in `src/lib/deeplinks.ts` and `src/lib/fares/travelpayouts.ts`
+      against your partner dashboards (sub-ID parameter names, `currency=zar`)
+- [ ] Check whether partner data includes **FlySafair and LIFT** domestic fares
+- [ ] Real contact email set; privacy policy reviewed before collecting any emails or phone numbers
+- [ ] Search Console + sitemap submitted
+
+## Common tasks
+
+**Add a route page.** Add a pair to `routePairs` in `src/data/routes.ts`, e.g. `["DUR", "PLZ"]`. Both directions
+are published, added to the sitemap and pre-rendered automatically. Both airports must exist in `airports.ts`.
+
+**Add an airport.** Add an entry to `src/data/airports.ts` (IATA code, city, name, country, URL slug, domestic flag).
+The route tests check codes and slugs are unique and well-formed.
+
+**Add a partner.** Add it to the `Partner` type, `buildPartnerUrl`, `enabledPartners` and `partnerLabels` in
+`src/lib/deeplinks.ts`, add it to `PARTNERS` in `src/app/go/route.ts`, add it to the `clicks.partner` check
+constraint with a new migration, and write tests.
+
+**Add a fare source.** Implement `FareProvider` in `src/lib/fares/`, return `Fare[]` sorted by price, and select
+it in `getFareProvider()`.
+
+**Rename the site.** Edit `src/config/site.ts`. Nothing else hard-codes the name.
+
+## Compliance
+
+- **No scraping.** All data comes from partner APIs we're licensed to use.
+- **Honest prices.** Cached fares always show when they were found and that they may change. No "guaranteed
+  lowest" claims.
+- **Affiliate disclosure** in the footer of every page and on `/how-we-make-money`.
+- **POPIA.** No analytics or marketing cookies before consent. Click logs hold no IP address or personal details.
+  Email or WhatsApp alerts (not built yet) will need double opt-in with stored consent.
+- **Partner rules.** No bidding on partner brand keywords, no auto-redirects, no error-fare posts using Skyscanner.
+
+This isn't legal advice. Have the privacy policy reviewed before collecting personal information.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Yellow "Demo mode" banner in production | `TRAVELPAYOUTS_TOKEN` isn't set for that environment. Redeploy after adding it |
+| Prices empty after adding the token | Check server logs for `[travelpayouts] HTTP 401` (bad token) or `429` (rate limit) |
+| "View on Travelstart" missing | `TRAVELSTART_AFFILIATE_LINK` not set, by design |
+| Clicks not in Supabase | Check both Supabase variables are set. Logs show `[click] insert failed: …` with the reason |
+| Sitemap URLs show localhost | Set `NEXT_PUBLIC_SITE_URL` and redeploy |
+| `npm install` peer-dependency errors | Use Node 22 (`nvm use`) and `npm ci` |
+
+## Working with Claude Code
+
+Open the repo in Claude Code and it reads `CLAUDE.md` first: the non-negotiable rules, a map of the code and the
+open items to verify. A good first prompt:
+
+> Read CLAUDE.md and docs/ROADMAP.md, run `npm run check`, then start Phase 1.
+
+---
+
+© MilehighclubZA. Private project.
