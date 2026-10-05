@@ -48,8 +48,33 @@ cp .env.example .env.local      # Windows PowerShell: Copy-Item .env.example .en
 npm run dev                     # http://localhost:3000
 ```
 
+> **On a work laptop or behind a corporate VPN?** Use [GitHub Codespaces](#develop-in-github-codespaces-with-claude-code)
+> instead. It runs in the cloud, so company firewalls and certificate inspection don't get in the way.
+
 With an empty `.env.local` the site runs in **demo mode**. Every page works, prices are realistic sample data,
 and a yellow banner on every fare page says so. You can build, test and deploy before any partner has approved you.
+
+### Develop in GitHub Codespaces (with Claude Code)
+
+The repo includes `.devcontainer/devcontainer.json`, so every Codespace starts with Node 22, all packages
+installed, Claude Code (CLI and VS Code panel), ESLint and Tailwind extensions, and port 3000 forwarded.
+
+1. On the repo page: **Code → Codespaces → Create codespace on main**. The first build takes a few minutes and
+   runs `npm ci` for you.
+2. In the terminal: `npm run dev`. A preview of the site opens. You can also use the **Ports** tab → port 3000 →
+   open in browser.
+3. Open a second terminal (the **+** button) and run `claude`. Follow the sign-in link (needs a Claude Pro, Max,
+   Team or Enterprise plan). If the browser says it's done but the terminal is still waiting, copy the code from
+   the browser and paste it into the terminal.
+4. A good first prompt: *Read CLAUDE.md and docs/ROADMAP.md, run `npm run check`, then start Phase 1.*
+
+**Stay signed in across rebuilds (optional):** run `claude setup-token` once, then save the token as a
+Codespaces secret named `CLAUDE_CODE_OAUTH_TOKEN` at
+[github.com/settings/codespaces](https://github.com/settings/codespaces), with access to this repo.
+Partner keys (`TRAVELPAYOUTS_TOKEN` etc.) can be stored the same way, never in the code.
+
+**Cost:** personal GitHub accounts include a monthly free Codespaces allowance (check yours under
+Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manually when you're done to save hours.
 
 ## Scripts
 
@@ -276,6 +301,8 @@ This isn't legal advice. Have the privacy policy reviewed before collecting pers
 | Clicks not in Supabase | Check both Supabase variables are set. Logs show `[click] insert failed: …` with the reason |
 | Sitemap URLs show localhost | Set `NEXT_PUBLIC_SITE_URL` and redeploy |
 | `npm install` peer-dependency errors | Use Node 22 (`nvm use`) and `npm ci` |
+| `npm ERR! enoent ... package.json` | You're not in the project folder. `cd milehighclubza` first |
+| `SELF_SIGNED_CERT_IN_CHAIN` or "tarball seems to be corrupted" | A company VPN or antivirus is intercepting HTTPS. Use Codespaces, or ask IT for the company root certificate and set `npm config set cafile <path>`. **Never** set `strict-ssl false` |
 
 ## Working with Claude Code
 

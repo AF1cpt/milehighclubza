@@ -18,7 +18,8 @@ affiliate commission when users click out to a partner and book. We do NOT sell 
 
 ## Stack
 Next.js 15 (App Router, TS, Tailwind v4) on Vercel · Supabase Postgres (click + conversion logs) · Vitest 5 ·
-GitHub Actions CI. Node 22 (`.nvmrc`).
+GitHub Actions CI. Node 22 (`.nvmrc`). `.devcontainer/` sets up GitHub Codespaces (Node 22 + Claude Code,
+`npm ci` on create, port 3000). It's the default dev environment when local npm is blocked (e.g. corporate VPN).
 
 ## Commands
 - `npm run dev` — local dev (demo mode without env vars)
