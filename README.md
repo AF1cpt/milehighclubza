@@ -230,7 +230,10 @@ npm run check     # lint + typecheck + tests + build, same as CI
 | `tests/deeplinks.test.ts` | Partner URL formats, sub-IDs, Travelstart toggle, device detection |
 | `tests/go.test.ts` | Full `/go` handler: redirect, logging, unique sub-IDs, 8 rejection cases, no-cache headers |
 
-GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests, build and `npm audit` on every push and PR.
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and build on every push and PR. It also
+runs `npm audit` twice: **production dependencies must be clean** (this blocks the build), and dev tooling is
+reported but doesn't block, because tools like the linter never ship to users and sometimes have advisories
+with no patched version yet. Check the "Audit dev tooling" step now and then, and update when a fix lands.
 
 **Manual smoke test** after `npm run build && npm start`:
 

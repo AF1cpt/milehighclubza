@@ -26,4 +26,11 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - run: npm audit --audit-level=high
+      # Blocking: anything that ships to the live site must have no high/critical advisories.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      # Report-only: dev tools (linters, test runner) never reach users. Advisories with no
+      # patched release yet shouldn't block deploys, but they stay visible in the log.
+      - name: Audit dev tooling (report only)
+        run: npm audit --audit-level=high
+        continue-on-error: true
