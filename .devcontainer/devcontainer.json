@@ -8,7 +8,7 @@
   "postCreateCommand": "npm ci",
   "forwardPorts": [3000],
   "portsAttributes": {
-    "3000": { "label": "MilehighclubZA site", "onAutoForward": "openPreview" }
+    "3000": { "label": "MilehighclubZA site", "onAutoForward": "openBrowser" }
   },
   "containerEnv": {
     "NEXT_TELEMETRY_DISABLED": "1"
