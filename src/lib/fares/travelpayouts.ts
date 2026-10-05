@@ -7,7 +7,9 @@ import type { Fare, FareProvider, FareQuery } from "./types";
  *
  * VERIFY when your token arrives: that `currency=zar` is accepted, and the exact field names below.
  */
-const ENDPOINT = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates";
+// TRAVELPAYOUTS_API_BASE is a server-only, test-only override (local stand-in for end-to-end tests).
+const API_BASE = process.env.TRAVELPAYOUTS_API_BASE ?? "https://api.travelpayouts.com";
+const ENDPOINT = `${API_BASE}/aviasales/v3/prices_for_dates`;
 
 type TpItem = {
   origin: string;
@@ -22,8 +24,12 @@ type TpItem = {
 type TpResponse = { success: boolean; data?: TpItem[]; currency?: string; error?: string };
 
 export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[] {
+  // Departure dates are local to the airport; compare against today's date in South Africa so a
+  // stale cache entry for a flight that has already left is never shown as the "cheapest" fare.
+  const today = now.toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
   return items
     .filter((i) => typeof i.price === "number" && i.price > 0 && i.departure_at)
+    .filter((i) => i.departure_at.slice(0, 10) >= today)
     .map((i) => ({
       origin: i.origin,
       destination: i.destination,

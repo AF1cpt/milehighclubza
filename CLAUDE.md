@@ -39,6 +39,7 @@ GitHub Actions CI. Node 22 (`.nvmrc`). `.devcontainer/` sets up GitHub Codespace
 - `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID
 
 ## Open items to verify (do not guess)
+`npm run verify:travelpayouts` answers items 1 and 3 with live data. Run it whenever the token changes.
 1. Travelpayouts: `currency=zar` support, `sub_id` param name on Aviasales links, payout methods for SA residents.
 2. Travelstart (Impact): sub-ID param (`subId1`?), deep-link URL format for a specific search, attribution window.
 3. Whether Aviasales data includes FlySafair / LIFT domestic fares. If not, show "check airline direct" notes.

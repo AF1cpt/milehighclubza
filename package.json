@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "verify:travelpayouts": "node scripts/verify-travelpayouts.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

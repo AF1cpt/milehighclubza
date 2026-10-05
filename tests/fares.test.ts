@@ -11,10 +11,17 @@ describe("travelpayouts normaliser", () => {
       { origin: "JNB", destination: "CPT", price: 1499.6, airline: "FA", transfers: 0, departure_at: "2026-11-14T06:00:00+02:00" },
       { origin: "JNB", destination: "CPT", price: 0, airline: "4Z", transfers: 0, departure_at: "2026-11-15T06:00:00+02:00" },
       { origin: "JNB", destination: "CPT", price: 999, airline: "SA", transfers: 0, departure_at: "2026-11-16T06:00:00+02:00", return_at: "2026-11-20T18:00:00+02:00" },
-    ]);
+    ], new Date("2026-10-01T10:00:00Z"));
     expect(fares).toHaveLength(2);
     expect(fares[0]).toMatchObject({ price: 999, departDate: "2026-11-16", returnDate: "2026-11-20", source: "travelpayouts" });
     expect(fares[1].price).toBe(1500);
+  });
+
+  it("drops flights that have already departed (SA local date), keeps today's", () => {
+    const row = (day: string, price: number) => ({ origin: "JNB", destination: "CPT", price, airline: "FA", transfers: 0, departure_at: `${day}T06:00:00+02:00` });
+    // 23:30 UTC on 14 Nov is already 01:30 on 15 Nov in Johannesburg.
+    const fares = normaliseTravelpayouts([row("2026-11-14", 500), row("2026-11-15", 900), row("2026-11-20", 700)], new Date("2026-11-14T23:30:00Z"));
+    expect(fares.map((f) => f.departDate)).toEqual(["2026-11-20", "2026-11-15"]);
   });
 });
 

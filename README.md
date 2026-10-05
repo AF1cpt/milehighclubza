@@ -87,6 +87,7 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run lint` | ESLint (Next.js rules) |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
+| `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
 
 ## Environment variables
 
@@ -256,7 +257,7 @@ Route pages are pre-rendered at build and refreshed every 6 hours (ISR), so most
 ## Go-live checklist
 
 - [ ] Domain bought and connected, `NEXT_PUBLIC_SITE_URL` set
-- [ ] Travelpayouts approved → `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` set → demo banner gone
+- [ ] Travelpayouts approved → `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` set → `npm run verify:travelpayouts` passes → demo banner gone
 - [ ] Travelstart (Impact) approved → `TRAVELSTART_AFFILIATE_LINK` set
 - [ ] Supabase keys set → a test click appears in `clicks`
 - [ ] Verify the items marked `VERIFY` in `src/lib/deeplinks.ts` and `src/lib/fares/travelpayouts.ts`
