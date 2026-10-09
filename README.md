@@ -10,7 +10,7 @@ our links.** We never sell tickets and we never scrape airline or travel sites.
 | | |
 |---|---|
 | **Stack** | Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Supabase Postgres · Vitest |
-| **Hosting** | Vercel (free tier is enough to launch) |
+| **Hosting** | Cloudflare Workers, Free plan (OpenNext adapter); static pages rebuilt every 6h by GitHub Actions |
 | **Fare data** | Travelpayouts / Aviasales Data API (cached prices), with a labelled demo fallback |
 | **Revenue** | Travelstart (flat rand per booking) and Aviasales (revenue share) affiliate click-outs |
 | **Status** | MVP complete, running in demo mode until partner credentials are added |
@@ -88,11 +88,16 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
 | `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
+| `npm run cf:preview` | Build for Cloudflare and run it locally in the real Workers runtime (http://localhost:8787) |
+| `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
+| `npm run cf:deploy` | Build and deploy from your machine (needs `npx wrangler login`); prefer the Deploy workflow |
+| `npm run smoke:deploy -- <url>` | Post-deploy checks against a live URL: pages, search API, real fares when a token is set |
 
 ## Environment variables
 
-Copy `.env.example` to `.env.local` and fill values in as partner approvals land. Every one is optional; the site
-degrades gracefully without it.
+Locally, copy `.env.example` to `.env.local` and fill values in as partner approvals land. In production they
+live in GitHub (see [Deploying](#deploying)): the Deploy workflow uses them at build time and uploads the
+server-side ones to the Worker. Every one is optional; the site degrades gracefully without it.
 
 | Variable | Without it | With it | Where to get it |
 |---|---|---|---|
@@ -115,32 +120,36 @@ degrades gracefully without it.
   - cheapest 5 dates over the next 3 months
   - a price calendar per month (tap a bar to search that day; green is the cheapest day)
   - FAQ answers generated from real data: cheapest month, cheapest weekday, airlines seen
-  - Breadcrumb and FAQ structured data (JSON-LD), canonical URLs, refreshed every 6 hours
+  - Breadcrumb and FAQ structured data (JSON-LD), canonical URLs, rebuilt with fresh fares every 6 hours
 - **Routes index** at `/flights`, split into domestic and international.
 - **Click-out tracking** at `/go`: every partner click gets a unique sub-ID so commissions can be traced back to
   the exact page and route that earned them.
 - **Compliance**: affiliate disclosure (`/how-we-make-money`), POPIA privacy draft (`/privacy`), cookie consent
   banner, "Checked 09 Oct, 14:05 SAST · cached price, may have changed" on every fare.
 - **SEO plumbing**: `sitemap.xml`, `robots.txt` (blocks `/go` and `/search` from indexing), Open Graph metadata.
-- **Performance**: about 108 kB per page, no client-side data fetching, which suits prepaid mobile data.
+- **Performance**: about 108 kB per page. Pages are pre-rendered; only search fetches data in the browser (a
+  small JSON response), which suits prepaid mobile data.
 
 ## How it works
 
 ### A search, end to end
 
 ```
-Browser ── /search?o=JNB&d=CPT&dep=2026-11-14&ret=2026-11-18
-   │
+Browser ── /search?o=JNB&d=CPT&dep=2026-11-14&ret=2026-11-18    (static page shell)
+   │  <SearchResults/> validates the query, then
    ▼
-search/page.tsx (server)  ──►  getFareProvider()
-                                  ├─ TRAVELPAYOUTS_TOKEN set → TravelpayoutsProvider
-                                  │     GET api.travelpayouts.com/aviasales/v3/prices_for_dates
-                                  │     (token in header, currency=zar, cached 1h by Next)
-                                  └─ not set → SampleProvider (deterministic demo prices)
-   │
+GET /api/fares?o=JNB&d=CPT&dep=…&ret=…  ──►  getFareProvider()
+                                                ├─ TRAVELPAYOUTS_TOKEN set → TravelpayoutsProvider
+                                                │     GET api.travelpayouts.com/aviasales/v3/prices_for_dates
+                                                │     (token in header, currency=zar, live: no cache)
+                                                └─ not set → SampleProvider (deterministic demo prices)
+   │  JSON: { demo, partners, exact, flexible, cheapestOverall }
    ▼
-FareList → "View on Travelstart / Aviasales" → /go?p=…&o=…&d=…&dep=…
+FareList (in the browser) → "View on Travelstart / Aviasales" → /go?p=…&o=…&d=…&dep=…
 ```
+
+Route pages and the home page don't call the API per visit: they're pre-rendered at build time, and the
+scheduled deploy rebuilds them every 6 hours.
 
 ### A click-out, end to end
 
@@ -162,8 +171,17 @@ When the partner reports a booking, its report carries the same sub-ID. Import i
 
 Live flight-search APIs (Skyscanner, Aviasales Search, Kiwi) need 50k–100k monthly users before they'll grant
 access. The Travelpayouts Data API is open from day one but returns prices other users found recently. That's
-why every price says when it was found and that it may have changed. See `docs/ROADMAP.md` for when the live
+why every price says when we checked it and that it may have changed. See `docs/ROADMAP.md` for when the live
 APIs unlock.
+
+### Why static pages on a schedule
+
+The Cloudflare Workers Free plan allows 10 ms of CPU per request. Measured in the Workers runtime,
+re-rendering a route page or server-rendering search took 18–28 ms, while serving a pre-rendered page or the
+JSON search API takes ~7–8 ms. So nothing heavy runs on Cloudflare: GitHub Actions (no CPU limit) renders
+every page with fresh fares every 6 hours and deploys the result. Labels show the absolute time we checked
+each price, so a late rebuild shows older times rather than looking fresh. Workers Paid ($5/month) would let
+pages refresh on Cloudflare instead; see `open-next.config.ts`.
 
 ## Project structure
 
@@ -171,9 +189,10 @@ APIs unlock.
 src/
 ├── app/
 │   ├── page.tsx                  Home: search + popular routes
-│   ├── search/page.tsx           Search results (not indexed)
+│   ├── search/page.tsx           Search results shell (not indexed)
+│   ├── api/fares/route.ts        Search results as JSON (validated, live provider call)
 │   ├── flights/page.tsx          All routes index
-│   ├── flights/[slug]/page.tsx   SEO route pages (ISR, 6h)
+│   ├── flights/[slug]/page.tsx   SEO route pages (static, rebuilt every 6h)
 │   ├── go/route.ts               Click-out: validate → log → 302
 │   ├── how-we-make-money/        Affiliate disclosure
 │   ├── privacy/                  POPIA privacy policy (draft)
@@ -181,20 +200,24 @@ src/
 │   ├── layout.tsx · globals.css  Shell, footer disclosure, theme
 ├── components/
 │   ├── SearchForm.tsx            Client form with validation
-│   ├── FareList.tsx              Fare cards + partner buttons
+│   ├── SearchResults.tsx         Client: fetches /api/fares and renders results
+│   ├── FareList.tsx              Fare cards + partner buttons (server or browser)
 │   ├── PriceCalendar.tsx         CSS-only month bar chart
-│   ├── DemoBanner.tsx            Shown whenever sample data is in use
+│   ├── DemoBanner.tsx            Shown whenever sample data is in use (DemoNotice is the markup)
 │   └── CookieConsent.tsx         POPIA consent banner
 ├── config/site.ts                Brand name, URL, locale (rename the site here only)
 ├── data/
 │   ├── airports.ts               Supported airports
 │   └── routes.ts                 Published route pages (`routePairs`)
 └── lib/
-    ├── fares/                    FareProvider interface, Travelpayouts, Sample, helpers
+    ├── fares/                    FareProvider interface, Travelpayouts, Sample, search, helpers
     ├── deeplinks.ts              Partner URL builders + sub-IDs
     ├── clicks.ts                 Click logging (Supabase or console)
-    └── format.ts                 Rand, dates, "time ago", airline names
+    └── format.ts                 Rand, dates, "checked at" times, airline names
 supabase/migrations/              Database schema
+scripts/                          Travelpayouts go-live check, post-deploy smoke test
+open-next.config.ts · wrangler.jsonc   Cloudflare Workers build and Worker config
+.github/workflows/                CI (every push/PR) and Deploy (after green CI on main, every 6h, manual)
 tests/                            Vitest suites (one per module)
 docs/ROADMAP.md                   What to build next, and at what traffic level
 CLAUDE.md                         Rules and map for Claude Code
@@ -216,29 +239,36 @@ The Supabase linter reports this as "RLS enabled, no policy" at INFO level; that
 
 To recreate it elsewhere, paste the migration into the Supabase SQL editor, or run `supabase db push` with the CLI.
 
+Free Supabase projects pause after a stretch of inactivity. While paused, click logging fails (the redirect
+still works, but the click is lost). Restore it from the Supabase dashboard; steady traffic keeps it awake.
+
 ## Testing
 
 ```bash
-npm test          # 40 tests, about 2 seconds
+npm test          # 61 tests, about 2 seconds
 npm run check     # lint + typecheck + tests + build, same as CI
 ```
 
 | File | Covers |
 |---|---|
-| `tests/format.test.ts` | Brand config, rand formatting, dates, "time ago", airline names |
+| `tests/format.test.ts` | Brand config, rand formatting, dates, absolute SAST "checked" times, airline names |
 | `tests/routes.test.ts` | Airport data integrity, route slugs, both directions, domestic flag |
 | `tests/fares.test.ts` | Travelpayouts normalising, token kept out of URLs, error handling, sample data, helpers |
 | `tests/deeplinks.test.ts` | Partner URL formats, sub-IDs, Travelstart toggle, device detection |
 | `tests/go.test.ts` | Full `/go` handler: redirect, logging, unique sub-IDs, 8 rejection cases, no-cache headers |
+| `tests/search.test.ts` | Search validation, flexible-dates dedupe, always-live provider calls |
+| `tests/api-fares.test.ts` | Full `/api/fares` handler: demo flag, partners, 400s, cache and noindex headers |
+| `tests/deploy.test.ts` | Guards the static Cloudflare setup: no page with time-based `revalidate` |
 
-GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and build on every push and PR. It also
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and the Cloudflare build on every push and PR. It also
 runs `npm audit` twice: **production dependencies must be clean** (this blocks the build), and dev tooling is
 reported but doesn't block, because tools like the linter never ship to users and sometimes have advisories
 with no patched version yet. Check the "Audit dev tooling" step now and then, and update when a fix lands.
 
-**Manual smoke test** after `npm run build && npm start`:
+**Manual smoke test** after `npm run cf:preview` (the real Workers runtime, http://localhost:8787), or
+`npm run build && npm start`:
 
-1. `/`: search JNB → CPT, return. Results load, one "Cheapest" badge.
+1. `/`: search JNB → CPT, return. Results load, one "Cheapest" badge, every fare says "Checked … SAST".
 2. `/flights/johannesburg-to-cape-town`: 3 calendars, tapping a bar opens a search for that day.
 3. Click "View on Aviasales": a new tab opens on aviasales.com and the server logs a `[click]` line.
 4. `/flights/johannesburg-to-atlantis`: 404.
@@ -247,22 +277,58 @@ with no patched version yet. Check the "Audit dev tooling" step now and then, an
 
 ## Deploying
 
-1. Import `AF1cpt/milehighclubza` at [vercel.com/new](https://vercel.com/new). The framework is detected automatically.
-2. Add the environment variables (Production). At minimum set `NEXT_PUBLIC_SITE_URL`.
-3. Deploy. Add your domain under Project → Domains.
-4. In Google Search Console, verify the domain and submit `https://<domain>/sitemap.xml`.
+The site runs on the **Cloudflare Workers Free plan** through the OpenNext adapter. `.github/workflows/deploy.yml`
+builds and deploys it after every green CI run on `main`, every 6 hours (that's what refreshes the fares), and
+on demand (Actions → Deploy → Run workflow). Until Cloudflare is connected it skips with a notice instead of
+failing.
 
-Route pages are pre-rendered at build and refreshed every 6 hours (ISR), so most visits never touch the fare API.
+### One-time setup
+
+1. Create a free account at [dash.cloudflare.com](https://dash.cloudflare.com). Open **Workers & Pages** and note
+   your workers.dev subdomain (choose one if asked). The site will be at `https://fares-za.<subdomain>.workers.dev`.
+2. **My Profile → API Tokens → Create Token**, use the **Edit Cloudflare Workers** template. Copy your
+   **Account ID** from the dashboard too.
+3. In GitHub: **Settings → Secrets and variables → Actions**:
+
+   | Name | Kind | Value |
+   |---|---|---|
+   | `CLOUDFLARE_API_TOKEN` | Secret | Token from step 2 |
+   | `CLOUDFLARE_ACCOUNT_ID` | Secret | Account ID from step 2 |
+   | `NEXT_PUBLIC_SITE_URL` | Variable | The workers.dev URL now, your domain later. Required |
+   | `NEXT_PUBLIC_CONTACT_EMAIL` | Variable | Contact for POPIA requests |
+   | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELSTART_AFFILIATE_LINK`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Secrets | As in [Environment variables](#environment-variables); add them as approvals land |
+
+4. **Actions → Deploy → Run workflow.** The last step smoke-tests the live site, and fails if a Travelpayouts
+   token is configured but the site still serves demo data.
+5. **Custom domain:** add the domain to Cloudflare (free plan) and switch its nameservers to Cloudflare at your
+   registrar. Then **Workers & Pages → fares-za → Settings → Domains & Routes → Add → Custom domain**. Update
+   `NEXT_PUBLIC_SITE_URL` and run the workflow again.
+6. In Google Search Console, verify the domain and submit `https://<domain>/sitemap.xml`.
+
+GitHub is the one place to manage secrets: each deploy uploads the server-side ones to the Worker
+(`wrangler deploy --secrets-file`). Deploys only run for pushes to this repository, never for fork PRs.
+
+### Limits to watch
+
+- **CPU:** 10 ms per request on Free. Measured locally at ~7–8 ms. Check real numbers in **Workers & Pages →
+  fares-za → Logs** after the first deploy; consistent overruns return Error 1102. Fallback: Workers Paid
+  ($5/month), then switch `open-next.config.ts` to the R2 + Durable Object queue setup.
+- **Requests:** 100,000 per day on Free. Pages, `/api/fares` and `/go` count; JS, CSS and other static files
+  are free and unlimited. A search costs 2 requests (page + API).
+- **Schedule:** GitHub can start scheduled runs late. In a public repo, scheduled workflows are disabled after
+  60 days without repository activity; re-enable Deploy in the Actions tab if GitHub emails you.
 
 ## Go-live checklist
 
-- [ ] Domain bought and connected, `NEXT_PUBLIC_SITE_URL` set
-- [ ] Travelpayouts approved → `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` set → `npm run verify:travelpayouts` passes → demo banner gone
-- [ ] Travelstart (Impact) approved → `TRAVELSTART_AFFILIATE_LINK` set
-- [ ] Supabase keys set → a test click appears in `clicks`
+- [ ] Name chosen (`src/config/site.ts`), domain connected in Cloudflare, `NEXT_PUBLIC_SITE_URL` variable set
+- [ ] Cloudflare secrets set → Deploy workflow green, smoke test passes
+- [ ] Travelpayouts approved → `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` secrets → `npm run verify:travelpayouts` passes → demo banner gone
+- [ ] Travelstart (Impact) approved → `TRAVELSTART_AFFILIATE_LINK` secret
+- [ ] Supabase secrets set → a test click appears in `clicks`
 - [ ] Verify the items marked `VERIFY` in `src/lib/deeplinks.ts` and `src/lib/fares/travelpayouts.ts`
       against your partner dashboards (sub-ID parameter names, `currency=zar`)
 - [ ] Check whether partner data includes **FlySafair and LIFT** domestic fares
+- [ ] Workers Logs: CPU per request comfortably under 10 ms
 - [ ] Real contact email set; privacy policy reviewed before collecting any emails or phone numbers
 - [ ] Search Console + sitemap submitted
 
@@ -299,11 +365,15 @@ This isn't legal advice. Have the privacy policy reviewed before collecting pers
 
 | Problem | Fix |
 |---|---|
-| Yellow "Demo mode" banner in production | `TRAVELPAYOUTS_TOKEN` isn't set for that environment. Redeploy after adding it |
+| Yellow "Demo mode" banner in production | `TRAVELPAYOUTS_TOKEN` GitHub secret missing. Add it and run the Deploy workflow |
 | Prices empty after adding the token | Check server logs for `[travelpayouts] HTTP 401` (bad token) or `429` (rate limit) |
 | "View on Travelstart" missing | `TRAVELSTART_AFFILIATE_LINK` not set, by design |
 | Clicks not in Supabase | Check both Supabase variables are set. Logs show `[click] insert failed: …` with the reason |
-| Sitemap URLs show localhost | Set `NEXT_PUBLIC_SITE_URL` and redeploy |
+| Sitemap URLs show localhost | Set the `NEXT_PUBLIC_SITE_URL` repository variable and run the Deploy workflow |
+| Deploy run says "Skipping deploy" | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets not set yet |
+| Prices' "Checked" times getting old | Scheduled deploys stopped or failing: check the Actions tab (re-enable Deploy if disabled) |
+| Error 1102 "Worker exceeded resource limits" | CPU over 10 ms per request on Free. See [Limits to watch](#limits-to-watch) |
+| Clicks stopped appearing in Supabase | Project paused for inactivity. Restore it in the Supabase dashboard |
 | `npm install` peer-dependency errors | Use Node 22 (`nvm use`) and `npm ci` |
 | `npm ERR! enoent ... package.json` | You're not in the project folder. `cd milehighclubza` first |
 | `SELF_SIGNED_CERT_IN_CHAIN` or "tarball seems to be corrupted" | A company VPN or antivirus is intercepting HTTPS. Use Codespaces, or ask IT for the company root certificate and set `npm config set cafile <path>`. **Never** set `strict-ssl false` |
