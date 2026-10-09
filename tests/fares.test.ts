@@ -49,6 +49,21 @@ describe("TravelpayoutsProvider", () => {
     expect(init.headers["X-Access-Token"]).toBe("secret-token");
   });
 
+  it("labels prices with when the API answered, so a cached answer never looks fresh", async () => {
+    const row = { origin: "JNB", destination: "CPT", price: 999, airline: "FA", transfers: 0, departure_at: "2099-11-16T06:00:00+02:00" };
+    const body = JSON.stringify({ success: true, data: [row] });
+    // A response replayed from Next's fetch cache keeps its original Date header.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { headers: { date: "Fri, 02 Oct 2026 08:00:00 GMT" } })));
+    const [cached] = await new TravelpayoutsProvider("t").search({ origin: "JNB", destination: "CPT", depart: "2099-11" });
+    expect(cached.checkedAt).toBe("2026-10-02T08:00:00.000Z");
+
+    // No usable Date header: fall back to now.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { headers: { date: "nonsense" } })));
+    const before = Date.now();
+    const [fresh] = await new TravelpayoutsProvider("t").search({ origin: "JNB", destination: "CPT", depart: "2099-11" });
+    expect(Date.parse(fresh.checkedAt)).toBeGreaterThanOrEqual(before - 1000);
+  });
+
   it("skips the data cache for live searches", async () => {
     const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ success: true, data: [] })));
     vi.stubGlobal("fetch", fetchMock);
