@@ -1,7 +1,5 @@
-import { cheapestPerDay, type Fare } from "@/lib/fares";
+import type { DateWindow } from "@/lib/fares";
 import { saDatePlus } from "@/lib/format";
-
-export type DateWindow = { from: string; to: string };
 
 export type FestiveSeason = {
   /** The December the season starts in. */
@@ -68,11 +66,4 @@ export function festiveHolidays(year: number): Holiday[] {
       note: sunday ? `Falls on a Sunday, so Monday ${addDays(date, 1)} is a public holiday too.` : undefined,
     };
   });
-}
-
-/** The `n` cheapest days to depart inside the window, one fare per day, cheapest first. */
-export function cheapestInWindow(fares: Fare[], window: DateWindow, n: number): Fare[] {
-  return cheapestPerDay(fares.filter((f) => f.departDate >= window.from && f.departDate <= window.to))
-    .sort((a, b) => a.price - b.price || a.departDate.localeCompare(b.departDate))
-    .slice(0, n);
 }

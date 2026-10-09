@@ -402,4 +402,4 @@ open items to verify. A good first prompt:
 
 ---
 
-© MilehighclubZA. Private project.
+© MilehighclubZA. All rights reserved.

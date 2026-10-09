@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normaliseTravelpayouts, TravelpayoutsProvider } from "@/lib/fares/travelpayouts";
 import { SampleProvider } from "@/lib/fares/sample";
-import { cheapestPerDay, oldestCheck, upcomingMonths } from "@/lib/fares";
+import { cheapestPerDay, monthsIn, oldestCheck, upcomingMonths } from "@/lib/fares";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -133,6 +133,13 @@ describe("helpers", () => {
         { ...base, checkedAt: "2026-10-09T09:00:00.000Z" },
       ]),
     ).toBe("2026-10-09T06:00:00.000Z");
+  });
+
+  it("monthsIn lists every month a date window touches", () => {
+    expect(monthsIn({ from: "2026-10-09", to: "2026-10-30" })).toEqual(["2026-10"]);
+    expect(monthsIn({ from: "2026-10-25", to: "2026-11-24" })).toEqual(["2026-10", "2026-11"]);
+    expect(monthsIn({ from: "2026-12-26", to: "2027-01-15" })).toEqual(["2026-12", "2027-01"]);
+    expect(monthsIn({ from: "2026-11-30", to: "2027-02-01" })).toEqual(["2026-11", "2026-12", "2027-01", "2027-02"]);
   });
 
   it("upcomingMonths rolls over the year", () => {

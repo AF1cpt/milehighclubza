@@ -7,8 +7,8 @@ import { getAirport } from "@/data/airports";
 import { festivePairs, schoolSummerBreak } from "@/data/festive";
 import { routeSlug } from "@/data/routes";
 import { enabledPartners } from "@/lib/deeplinks";
-import { getFareProvider, oldestCheck, type Fare } from "@/lib/fares";
-import { cheapestInWindow, festiveHolidays, festiveSeason, type DateWindow, type FestiveSeason } from "@/lib/festive";
+import { cheapestInWindow, getFareProvider, oldestCheck, type DateWindow, type Fare } from "@/lib/fares";
+import { festiveHolidays, festiveSeason, type FestiveSeason } from "@/lib/festive";
 import { formatCheckedAt, formatDay, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 

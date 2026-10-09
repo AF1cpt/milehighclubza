@@ -2,8 +2,8 @@ import Link from "next/link";
 import { DemoBanner } from "@/components/DemoBanner";
 import { SearchForm } from "@/components/SearchForm";
 import { routes } from "@/data/routes";
-import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths } from "@/lib/fares";
-import { formatCheckedAt, formatZar } from "@/lib/format";
+import { cheapestInWindow, getFareProvider, monthsIn, oldestCheck, type DateWindow } from "@/lib/fares";
+import { formatCheckedAt, formatZar, saDatePlus } from "@/lib/format";
 import { festiveSeason, isFestivePromoTime } from "@/lib/festive";
 import { site } from "@/config/site";
 
@@ -21,19 +21,24 @@ const featured = [
   "johannesburg-to-zanzibar",
 ];
 
-async function cheapestFrom(slug: string) {
+/** Deals look 30 days ahead, not "this month", which has only a few days left near month-end. */
+const DEAL_DAYS = 30;
+
+async function cheapestFrom(slug: string, window: DateWindow) {
   const route = routes.find((r) => r.slug === slug);
   if (!route) return null;
-  const [month] = upcomingMonths(1);
-  const fares = cheapestPerDay(
-    await getFareProvider().search({ origin: route.origin.iata, destination: route.destination.iata, depart: month, limit: 60 }),
+  const all = await Promise.all(
+    monthsIn(window).map((m) =>
+      getFareProvider().search({ origin: route.origin.iata, destination: route.destination.iata, depart: m, limit: 60 }),
+    ),
   );
-  const min = fares.length ? Math.min(...fares.map((f) => f.price)) : null;
-  return { route, min, fares };
+  const fares = cheapestInWindow(all.flat(), window, DEAL_DAYS + 1);
+  return { route, min: fares[0]?.price ?? null, fares };
 }
 
 export default async function Home() {
-  const deals = (await Promise.all(featured.map(cheapestFrom))).filter((d) => d !== null);
+  const window = { from: saDatePlus(0), to: saDatePlus(DEAL_DAYS) };
+  const deals = (await Promise.all(featured.map((slug) => cheapestFrom(slug, window)))).filter((d) => d !== null);
   const checkedAt = oldestCheck(deals.flatMap((d) => d.fares));
 
   return (
@@ -67,7 +72,7 @@ export default async function Home() {
       )}
 
       <section className="mx-auto max-w-5xl px-4 py-10 space-y-4">
-        <h2 className="text-xl font-semibold">Popular routes this month</h2>
+        <h2 className="text-xl font-semibold">Popular routes: cheapest in the next 30 days</h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {deals.map(({ route, min }) => (
             <li key={route.slug}>

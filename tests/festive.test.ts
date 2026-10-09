@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cheapestInWindow, festiveHolidays, festiveSeason, isFestivePromoTime } from "@/lib/festive";
+import { festiveHolidays, festiveSeason, isFestivePromoTime } from "@/lib/festive";
+import { cheapestInWindow } from "@/lib/fares";
 import { festivePairs, schoolSummerBreak } from "@/data/festive";
 import { getRouteBySlug, routeSlug } from "@/data/routes";
 import { getAirport } from "@/data/airports";
