@@ -1,9 +1,10 @@
-import type { Fare, FareProvider, FareQuery } from "./types";
+import type { Fare, FareFetchOptions, FareProvider, FareQuery } from "./types";
 
 /**
  * Travelpayouts / Aviasales Data API (cached prices from Aviasales users' searches, kept up to ~7 days).
  * Docs: https://support.travelpayouts.com/hc/en-us/articles/203956163-Aviasales-Data-API
- * Rate limit for /v3/prices_for_dates: 600 requests/minute (June 2024). We cache via Next's fetch cache.
+ * Rate limit for /v3/prices_for_dates: 600 requests/minute (June 2024). Page builds use the fetch cache
+ * (one call per route/month per build); live searches skip it.
  *
  * VERIFY when your token arrives: that `currency=zar` is accepted, and the exact field names below.
  */
@@ -38,9 +39,9 @@ export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[
       price: Math.round(i.price),
       airline: i.airline,
       transfers: i.transfers ?? 0,
-      // The Data API does not return a per-price timestamp on this endpoint; we record fetch time
-      // and always label prices as "recently found, may have changed".
-      foundAt: now.toISOString(),
+      // This endpoint has no per-price "found at" timestamp, and its cache keeps prices for up to
+      // ~7 days. We record when we fetched it and label it as a cached price that may have changed.
+      checkedAt: now.toISOString(),
       source: "travelpayouts" as const,
     }))
     .sort((a, b) => a.price - b.price);
@@ -49,12 +50,9 @@ export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[
 export class TravelpayoutsProvider implements FareProvider {
   readonly id = "travelpayouts" as const;
 
-  constructor(
-    private readonly token: string,
-    private readonly revalidateSeconds = 3600,
-  ) {}
+  constructor(private readonly token: string) {}
 
-  async search(q: FareQuery): Promise<Fare[]> {
+  async search(q: FareQuery, options: FareFetchOptions = {}): Promise<Fare[]> {
     const params = new URLSearchParams({
       origin: q.origin,
       destination: q.destination,
@@ -68,7 +66,8 @@ export class TravelpayoutsProvider implements FareProvider {
 
     const res = await fetch(`${ENDPOINT}?${params}`, {
       headers: { "X-Access-Token": this.token, "Accept-Encoding": "gzip, deflate" },
-      next: { revalidate: this.revalidateSeconds },
+      // Pages are static and rebuilt on a schedule, so build-time fetches are cached for the whole build.
+      cache: options.live ? "no-store" : "force-cache",
     });
     if (!res.ok) {
       console.error(`[travelpayouts] HTTP ${res.status} for ${q.origin}-${q.destination} ${q.depart}`);

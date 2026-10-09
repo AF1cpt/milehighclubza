@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Worker name is deliberately brand-neutral (the brand lives only in src/config/site.ts).
+  // Renaming it later creates a new Worker, so leave it once deployed.
+  "name": "fares-za",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Pre-rendered pages and the read-only page cache (see open-next.config.ts) are served from here.
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // CPU time and errors per request show up in the dashboard under Workers Logs.
+  "observability": {
+    "enabled": true
+  }
+}

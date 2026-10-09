@@ -6,9 +6,10 @@
   },
   "remoteUser": "node",
   "postCreateCommand": "npm ci",
-  "forwardPorts": [3000],
+  "forwardPorts": [3000, 8787],
   "portsAttributes": {
-    "3000": { "label": "MilehighclubZA site", "onAutoForward": "openBrowser" }
+    "3000": { "label": "MilehighclubZA site", "onAutoForward": "openBrowser" },
+    "8787": { "label": "Workers preview (npm run cf:preview)", "onAutoForward": "openBrowser" }
   },
   "containerEnv": {
     "NEXT_TELEMETRY_DISABLED": "1"

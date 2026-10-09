@@ -25,11 +25,21 @@ export function formatMonth(yyyyMm: string): string {
   });
 }
 
-export function timeAgo(iso: string, now = Date.now()): string {
-  const hours = Math.max(0, Math.round((now - new Date(iso).getTime()) / 3600_000));
-  if (hours < 1) return "under an hour ago";
-  if (hours < 48) return `${hours}h ago`;
-  return `${Math.round(hours / 24)} days ago`;
+const checkedAtFormat = new Intl.DateTimeFormat("en-ZA", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: "Africa/Johannesburg",
+});
+
+/**
+ * "09 Oct, 14:05 SAST". An absolute time, not "2h ago": pages are pre-rendered and served for hours,
+ * and a relative time frozen into the HTML would make old prices look fresh.
+ */
+export function formatCheckedAt(iso: string): string {
+  return `${checkedAtFormat.format(new Date(iso))} SAST`;
 }
 
 const airlineNames: Record<string, string> = {

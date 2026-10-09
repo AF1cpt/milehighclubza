@@ -6,11 +6,14 @@ import { FareList } from "@/components/FareList";
 import { PriceCalendar } from "@/components/PriceCalendar";
 import { SearchForm } from "@/components/SearchForm";
 import { getRouteBySlug, routes } from "@/data/routes";
-import { cheapestPerDay, getFareProvider, upcomingMonths, type Fare } from "@/lib/fares";
-import { airlineName, formatMonth, formatZar } from "@/lib/format";
+import { enabledPartners } from "@/lib/deeplinks";
+import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths, type Fare } from "@/lib/fares";
+import { airlineName, formatCheckedAt, formatMonth, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 
-export const revalidate = 21600; // 6h — matches the cache age of the underlying data
+// Fully static: rebuilt with fresh fares every 6h by the scheduled deploy (.github/workflows/deploy.yml).
+// On the Workers Free plan, re-rendering on Cloudflare would exceed the 10 ms CPU limit.
+export const revalidate = false;
 export const dynamicParams = false;
 
 type Params = Promise<{ slug: string }>;
@@ -61,6 +64,7 @@ export default async function RoutePage({ params }: { params: Params }) {
   );
 
   const all = byMonth.flatMap((m) => m.fares);
+  const checkedAt = oldestCheck(all);
   const cheapest = [...all].sort((a, b) => a.price - b.price).slice(0, 5);
   const monthMins = byMonth.filter((m) => m.fares.length).map((m) => ({ month: m.month, min: Math.min(...m.fares.map((f) => f.price)) }));
   const bestMonth = [...monthMins].sort((a, b) => a.min - b.min)[0];
@@ -120,11 +124,17 @@ export default async function RoutePage({ params }: { params: Params }) {
               </>
             )}
           </p>
+          {checkedAt && (
+            <p className="text-xs text-ink-soft">
+              Cached partner prices, checked {formatCheckedAt(checkedAt)}. They may have changed; the booking site
+              shows the final price.
+            </p>
+          )}
         </header>
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">Cheapest dates (one way)</h2>
-          <FareList fares={cheapest} sourcePage={`route:${route.slug}`} />
+          <FareList fares={cheapest} partners={enabledPartners()} sourcePage={`route:${route.slug}`} />
         </section>
 
         <section className="space-y-6">

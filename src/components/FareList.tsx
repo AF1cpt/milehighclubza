@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Fare } from "@/lib/fares";
-import { enabledPartners, partnerLabels, type Partner } from "@/lib/deeplinks";
-import { airlineName, formatDay, formatZar, timeAgo } from "@/lib/format";
+import { partnerLabels, type Partner } from "@/lib/deeplinks";
+import { airlineName, formatCheckedAt, formatDay, formatZar } from "@/lib/format";
 
 export function goHref(fare: Fare, partner: Partner, sourcePage: string): string {
   const q = new URLSearchParams({
@@ -16,18 +16,22 @@ export function goHref(fare: Fare, partner: Partner, sourcePage: string): string
   return `/go?${q}`;
 }
 
+/**
+ * Fare cards with partner buttons. Renders on the server (route pages) and in the browser (search), so
+ * the partner list is passed in: `enabledPartners()` reads server-only env vars.
+ */
 export function FareList({
   fares,
+  partners,
   sourcePage,
   cheapestOverall,
 }: {
   fares: Fare[];
+  partners: Partner[];
   sourcePage: string;
   /** Lowest price across everything on the page; the badge only shows on fares that match it. */
   cheapestOverall?: number;
 }) {
-  const partners = enabledPartners();
-
   if (fares.length === 0) {
     return (
       <div className="rounded-xl border border-line bg-sky p-6 text-ink-soft">
@@ -54,7 +58,7 @@ export function FareList({
               {f.returnDate ? ` → ${formatDay(f.returnDate)}` : " · one way"} · {airlineName(f.airline)} ·{" "}
               {f.transfers === 0 ? "Direct" : `${f.transfers} stop${f.transfers > 1 ? "s" : ""}`}
             </p>
-            <p className="text-xs text-ink-soft">Found {timeAgo(f.foundAt)} · price may have changed</p>
+            <p className="text-xs text-ink-soft">Checked {formatCheckedAt(f.checkedAt)} · cached price, may have changed</p>
           </div>
           <div className="flex gap-2 shrink-0">
             {partners.map((p) => (

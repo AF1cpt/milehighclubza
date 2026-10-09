@@ -1,0 +1,94 @@
+name: Deploy
+
+# Builds the site and deploys it to Cloudflare Workers. Pages are static and rebuilt with fresh
+# fares on every run, so the schedule is what keeps prices current: on the Workers Free plan the
+# Worker can't re-render pages itself (10 ms CPU limit, see open-next.config.ts).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  schedule:
+    # Every 6 hours (UTC), off the hour. GitHub can start scheduled runs late when it's busy.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # After a push, deploy only what CI passed. Scheduled and manual runs rebuild main as it is.
+    # Only pushes to this repo: CI also runs for fork PRs, and a fork's branch can be called "main"
+    # too. Building that code here would hand it the secrets below.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Public values: repository variables (Settings → Secrets and variables → Actions → Variables).
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_CONTACT_EMAIL: ${{ vars.NEXT_PUBLIC_CONTACT_EMAIL }}
+      # Used at build time (pre-rendered pages) and uploaded as Worker secrets (search, /go).
+      TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+      TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
+      TRAVELSTART_AFFILIATE_LINK: ${{ secrets.TRAVELSTART_AFFILIATE_LINK }}
+      # Runtime only: /go click logging.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Check Cloudflare is connected
+        id: gate
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Skipping deploy: add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets first (README → Deploying)."
+            exit 0
+          fi
+          if [ -z "$NEXT_PUBLIC_SITE_URL" ]; then
+            echo "::error::Set the NEXT_PUBLIC_SITE_URL repository variable (your workers.dev URL or domain), or canonicals and the sitemap will point at localhost."
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - if: steps.gate.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Build (pre-renders every page with current fares)
+        if: steps.gate.outputs.ready == 'true'
+        run: npm run cf:build
+
+      - name: Deploy, uploading the Worker's secrets with this version
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          node -e '
+            const keys = ["TRAVELPAYOUTS_TOKEN", "TRAVELPAYOUTS_MARKER", "TRAVELSTART_AFFILIATE_LINK", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+            const secrets = Object.fromEntries(keys.filter((k) => process.env[k]).map((k) => [k, process.env[k]]));
+            require("fs").writeFileSync(process.env.RUNNER_TEMP + "/worker-secrets.json", JSON.stringify(secrets), { mode: 0o600 });
+          '
+          npx opennextjs-cloudflare deploy -- --secrets-file "$RUNNER_TEMP/worker-secrets.json"
+
+      - name: Remove secrets file
+        if: always() && steps.gate.outputs.ready == 'true'
+        run: rm -f "$RUNNER_TEMP/worker-secrets.json"
+
+      - name: Smoke test the live site
+        if: steps.gate.outputs.ready == 'true'
+        run: npm run smoke:deploy -- "$NEXT_PUBLIC_SITE_URL"

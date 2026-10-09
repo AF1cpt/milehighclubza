@@ -56,7 +56,8 @@ export class SampleProvider implements FareProvider {
     const base = baseOneWay(q.origin, q.destination);
     const carriers =
       intlCarriers[q.destination] ?? intlCarriers[q.origin] ?? domesticCarriers;
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
 
     const fares: Fare[] = dates
       .filter((date) => date >= today)
@@ -79,7 +80,7 @@ export class SampleProvider implements FareProvider {
           price: Math.round(price / 10) * 10,
           airline: carriers[h % carriers.length],
           transfers: base > 5000 ? 1 : 0,
-          foundAt: new Date(Date.now() - (h % 36) * 3600_000).toISOString(),
+          checkedAt: now.toISOString(),
           source: "sample" as const,
         };
       });

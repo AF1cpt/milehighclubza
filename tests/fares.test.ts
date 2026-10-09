@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normaliseTravelpayouts, TravelpayoutsProvider } from "@/lib/fares/travelpayouts";
 import { SampleProvider } from "@/lib/fares/sample";
-import { cheapestPerDay, upcomingMonths } from "@/lib/fares";
+import { cheapestPerDay, oldestCheck, upcomingMonths } from "@/lib/fares";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -15,6 +15,15 @@ describe("travelpayouts normaliser", () => {
     expect(fares).toHaveLength(2);
     expect(fares[0]).toMatchObject({ price: 999, departDate: "2026-11-16", returnDate: "2026-11-20", source: "travelpayouts" });
     expect(fares[1].price).toBe(1500);
+  });
+
+  it("records when we checked the price, since the API gives no found-at time", () => {
+    const now = new Date("2026-10-01T10:00:00Z");
+    const [fare] = normaliseTravelpayouts(
+      [{ origin: "JNB", destination: "CPT", price: 999, airline: "FA", transfers: 0, departure_at: "2026-11-16T06:00:00+02:00" }],
+      now,
+    );
+    expect(fare.checkedAt).toBe(now.toISOString());
   });
 
   it("drops flights that have already departed (SA local date), keeps today's", () => {
@@ -38,6 +47,16 @@ describe("TravelpayoutsProvider", () => {
     expect(u.searchParams.get("one_way")).toBe("false");
     expect(url).not.toContain("secret-token");
     expect(init.headers["X-Access-Token"]).toBe("secret-token");
+  });
+
+  it("skips the data cache for live searches", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ success: true, data: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+    const p = new TravelpayoutsProvider("t");
+    await p.search({ origin: "JNB", destination: "CPT", depart: "2026-11-14" }, { live: true });
+    await p.search({ origin: "JNB", destination: "CPT", depart: "2026-11" });
+    expect(fetchMock.mock.calls[0][1].cache).toBe("no-store");
+    expect(fetchMock.mock.calls[1][1].cache).toBe("force-cache");
   });
 
   it("returns an empty list instead of throwing on API errors", async () => {
@@ -80,13 +99,25 @@ describe("SampleProvider", () => {
 
 describe("helpers", () => {
   it("cheapestPerDay keeps one fare per day, sorted by date", () => {
-    const base = { origin: "JNB", destination: "CPT", airline: "FA", transfers: 0, foundAt: "", source: "sample" as const };
+    const base = { origin: "JNB", destination: "CPT", airline: "FA", transfers: 0, checkedAt: "", source: "sample" as const };
     const out = cheapestPerDay([
       { ...base, departDate: "2026-11-02", price: 900 },
       { ...base, departDate: "2026-11-01", price: 800 },
       { ...base, departDate: "2026-11-02", price: 700 },
     ]);
     expect(out.map((f) => [f.departDate, f.price])).toEqual([["2026-11-01", 800], ["2026-11-02", 700]]);
+  });
+
+  it("oldestCheck picks the earliest check time, or null with no fares", () => {
+    const base = { origin: "JNB", destination: "CPT", airline: "FA", transfers: 0, departDate: "2026-11-01", price: 900, source: "sample" as const };
+    expect(oldestCheck([])).toBeNull();
+    expect(
+      oldestCheck([
+        { ...base, checkedAt: "2026-10-09T12:00:00.000Z" },
+        { ...base, checkedAt: "2026-10-09T06:00:00.000Z" },
+        { ...base, checkedAt: "2026-10-09T09:00:00.000Z" },
+      ]),
+    ).toBe("2026-10-09T06:00:00.000Z");
   });
 
   it("upcomingMonths rolls over the year", () => {

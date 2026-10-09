@@ -10,8 +10,11 @@ export type Fare = {
   /** IATA airline code, e.g. "FA" */
   airline: string;
   transfers: number;
-  /** When the provider last saw this price (ISO timestamp). Cached data — may have changed. */
-  foundAt: string;
+  /**
+   * When we fetched this price from the provider (ISO timestamp). The provider's own cache can be
+   * days older than this, so never present the price as live.
+   */
+  checkedAt: string;
   source: "travelpayouts" | "sample";
 };
 
@@ -25,8 +28,13 @@ export type FareQuery = {
   limit?: number;
 };
 
+export type FareFetchOptions = {
+  /** Ask the provider now, skipping our data cache (search API). Default: cached for page rendering. */
+  live?: boolean;
+};
+
 export interface FareProvider {
   readonly id: Fare["source"];
   /** Cheapest cached fares matching the query, sorted by price ascending. */
-  search(query: FareQuery): Promise<Fare[]>;
+  search(query: FareQuery, options?: FareFetchOptions): Promise<Fare[]>;
 }
