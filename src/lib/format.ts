@@ -25,6 +25,14 @@ export function formatMonth(yyyyMm: string): string {
   });
 }
 
+/**
+ * "YYYY-MM-DD" in South Africa, `days` from today. Not `toISOString()`, which is UTC and gives yesterday's
+ * date between 00:00 and 02:00 SAST. SA has no daylight saving, so adding whole days is exact.
+ */
+export function saDatePlus(days: number, now = new Date()): string {
+  return new Date(now.getTime() + days * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+}
+
 const checkedAtFormat = new Intl.DateTimeFormat("en-ZA", {
   day: "numeric",
   month: "short",

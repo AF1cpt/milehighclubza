@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aviasalesSearchSegment, buildPartnerUrl, ddmm, enabledPartners } from "@/lib/deeplinks";
+import { addonsFor, aviasalesSearchSegment, buildPartnerUrl, ddmm, enabledAddons, enabledPartners, isAddon } from "@/lib/deeplinks";
 import { deviceFromUserAgent } from "@/lib/clicks";
 
 describe("deeplinks", () => {
@@ -30,6 +30,48 @@ describe("deeplinks", () => {
     expect(enabledPartners(env)).toEqual(["travelstart", "aviasales"]);
     const url = new URL(buildPartnerUrl({ partner: "travelstart", origin: "JNB", destination: "CPT", departDate: "2026-11-14" }, "sub9", env)!);
     expect(url.searchParams.get("subId1")).toBe("sub9");
+  });
+});
+
+describe("add-on partners", () => {
+  const car = { partner: "discovercars", origin: "JNB", destination: "CPT" } as const;
+
+  it("uses the dashboard tracking link and fills in {subid}", () => {
+    const env = { DISCOVERCARS_AFFILIATE_LINK: "https://tp.example/r?marker=1&sub_id={subid}" };
+    const url = new URL(buildPartnerUrl(car, "abc 123", env)!);
+    expect(url.hostname).toBe("tp.example");
+    expect(url.searchParams.get("marker")).toBe("1");
+    expect(url.searchParams.get("sub_id")).toBe("abc 123");
+  });
+
+  it("leaves a link without {subid} as it is", () => {
+    expect(buildPartnerUrl(car, "x", { DISCOVERCARS_AFFILIATE_LINK: "https://tp.example/r?marker=1" })).toBe(
+      "https://tp.example/r?marker=1",
+    );
+  });
+
+  it("returns null when not configured, not https, or not a URL", () => {
+    expect(buildPartnerUrl(car, "x", {})).toBeNull();
+    expect(buildPartnerUrl(car, "x", { DISCOVERCARS_AFFILIATE_LINK: "http://tp.example/r" })).toBeNull();
+    expect(buildPartnerUrl(car, "x", { DISCOVERCARS_AFFILIATE_LINK: "not a url" })).toBeNull();
+  });
+
+  it("enables only partners whose link is set", () => {
+    expect(enabledAddons({})).toEqual([]);
+    expect(enabledAddons({ AIRALO_AFFILIATE_LINK: "https://a.example" })).toEqual(["airalo"]);
+  });
+
+  it("offers car hire everywhere and an eSIM only abroad, eSIM first", () => {
+    const both = ["discovercars", "airalo"] as const;
+    expect(addonsFor({ domestic: true }, [...both])).toEqual(["discovercars"]);
+    expect(addonsFor({ domestic: false }, [...both])).toEqual(["airalo", "discovercars"]);
+    expect(addonsFor({ domestic: false }, [])).toEqual([]);
+  });
+
+  it("only treats real add-on names as add-ons", () => {
+    expect(isAddon("airalo")).toBe(true);
+    expect(isAddon("aviasales")).toBe(false);
+    expect(isAddon("toString")).toBe(false);
   });
 });
 

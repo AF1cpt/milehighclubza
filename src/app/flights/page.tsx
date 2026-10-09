@@ -27,6 +27,12 @@ export default function RoutesIndex() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 space-y-8">
       <h1 className="text-3xl font-semibold tracking-tight">Cheap flight routes</h1>
+      <p>
+        Travelling over December?{" "}
+        <Link href="/december-holiday-flights" className="underline">
+          Cheapest days to fly for the December holidays
+        </Link>
+      </p>
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Domestic South Africa</h2>
         {list(domestic)}

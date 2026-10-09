@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normaliseTravelpayouts, TravelpayoutsProvider } from "@/lib/fares/travelpayouts";
 import { SampleProvider } from "@/lib/fares/sample";
-import { cheapestPerDay, oldestCheck, upcomingMonths } from "@/lib/fares";
+import { cheapestPerDay, monthsIn, oldestCheck, upcomingMonths } from "@/lib/fares";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -47,6 +47,21 @@ describe("TravelpayoutsProvider", () => {
     expect(u.searchParams.get("one_way")).toBe("false");
     expect(url).not.toContain("secret-token");
     expect(init.headers["X-Access-Token"]).toBe("secret-token");
+  });
+
+  it("labels prices with when the API answered, so a cached answer never looks fresh", async () => {
+    const row = { origin: "JNB", destination: "CPT", price: 999, airline: "FA", transfers: 0, departure_at: "2099-11-16T06:00:00+02:00" };
+    const body = JSON.stringify({ success: true, data: [row] });
+    // A response replayed from Next's fetch cache keeps its original Date header.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { headers: { date: "Fri, 02 Oct 2026 08:00:00 GMT" } })));
+    const [cached] = await new TravelpayoutsProvider("t").search({ origin: "JNB", destination: "CPT", depart: "2099-11" });
+    expect(cached.checkedAt).toBe("2026-10-02T08:00:00.000Z");
+
+    // No usable Date header: fall back to now.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { headers: { date: "nonsense" } })));
+    const before = Date.now();
+    const [fresh] = await new TravelpayoutsProvider("t").search({ origin: "JNB", destination: "CPT", depart: "2099-11" });
+    expect(Date.parse(fresh.checkedAt)).toBeGreaterThanOrEqual(before - 1000);
   });
 
   it("skips the data cache for live searches", async () => {
@@ -118,6 +133,13 @@ describe("helpers", () => {
         { ...base, checkedAt: "2026-10-09T09:00:00.000Z" },
       ]),
     ).toBe("2026-10-09T06:00:00.000Z");
+  });
+
+  it("monthsIn lists every month a date window touches", () => {
+    expect(monthsIn({ from: "2026-10-09", to: "2026-10-30" })).toEqual(["2026-10"]);
+    expect(monthsIn({ from: "2026-10-25", to: "2026-11-24" })).toEqual(["2026-10", "2026-11"]);
+    expect(monthsIn({ from: "2026-12-26", to: "2027-01-15" })).toEqual(["2026-12", "2027-01"]);
+    expect(monthsIn({ from: "2026-11-30", to: "2027-02-01" })).toEqual(["2026-11", "2026-12", "2027-01", "2027-02"]);
   });
 
   it("upcomingMonths rolls over the year", () => {

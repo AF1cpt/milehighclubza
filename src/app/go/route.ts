@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isKnownIata } from "@/data/airports";
 import { logClick, deviceFromUserAgent } from "@/lib/clicks";
-import { buildPartnerUrl, type Partner } from "@/lib/deeplinks";
+import { addons, buildPartnerUrl, isAddon, type ClickTarget, type Partner } from "@/lib/deeplinks";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const PARTNERS: Partner[] = ["aviasales", "travelstart"];
+const PARTNERS: Partner[] = ["aviasales", "travelstart", ...(Object.keys(addons) as Partner[])];
 
 /**
  * Click-out endpoint: validates params, logs the click with a unique sub-ID, then 302s to the partner.
@@ -18,15 +18,19 @@ export async function GET(req: NextRequest) {
   const dep = sp.get("dep") ?? "";
   const ret = sp.get("ret") ?? undefined;
 
+  // Flight clicks need a departure date; add-on clicks (car hire, eSIM) only need the route.
   const ok =
     partner && PARTNERS.includes(partner) &&
     isKnownIata(origin) && isKnownIata(destination) && origin !== destination &&
-    DATE.test(dep) && (!ret || DATE.test(ret));
+    (isAddon(partner) ? !dep || DATE.test(dep) : DATE.test(dep)) && (!ret || DATE.test(ret));
 
   if (!ok) return NextResponse.redirect(new URL("/", req.url), 302);
 
   const subId = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-  const target = buildPartnerUrl({ partner, origin, destination, departDate: dep, returnDate: ret }, subId);
+  const click: ClickTarget = isAddon(partner)
+    ? { partner, origin, destination }
+    : { partner, origin, destination, departDate: dep, returnDate: ret };
+  const target = buildPartnerUrl(click, subId);
   if (!target) return NextResponse.redirect(new URL("/", req.url), 302);
 
   const price = Number(sp.get("price"));
@@ -35,7 +39,7 @@ export async function GET(req: NextRequest) {
     partner,
     origin,
     destination,
-    depart_date: dep,
+    depart_date: dep || null,
     return_date: ret ?? null,
     price_shown: Number.isFinite(price) && price > 0 ? Math.round(price) : null,
     source_page: sp.get("src")?.slice(0, 120) ?? null,
