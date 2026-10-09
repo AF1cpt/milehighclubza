@@ -88,7 +88,7 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
 | `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
-| `npm run verify:build` | After a build: fails if fewer than half the route pages have fares (CI and Deploy run it) |
+| `npm run verify:build` | After a build: fails if fewer than half the route pages have fares, or any page is over 120 KB (CI and Deploy run it) |
 | `npm run cf:preview` | Build for Cloudflare and run it locally in the real Workers runtime (http://localhost:8787) |
 | `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
 | `npm run cf:deploy` | Build and deploy from your machine (needs `npx wrangler login`); prefer the Deploy workflow |
@@ -266,7 +266,7 @@ npm run check     # lint + typecheck + tests + build, same as CI
 | `tests/search.test.ts` | Search validation, flexible-dates dedupe, always-live provider calls |
 | `tests/api-fares.test.ts` | Full `/api/fares` handler: demo flag, partners, 400s, cache and noindex headers |
 | `tests/deploy.test.ts` | Guards the static Cloudflare setup: no page with time-based `revalidate` |
-| `tests/check-build-fares.test.ts` | Build guard: counts route pages with fares, blocks a deploy when most are empty |
+| `tests/check-build.test.ts` | Build guard: blocks a deploy when most route pages have no fares or any page is over the size budget |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and the Cloudflare build on every push and PR. It also
 runs `npm audit` twice: **production dependencies must be clean** (this blocks the build), and dev tooling is

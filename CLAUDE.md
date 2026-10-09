@@ -37,8 +37,9 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
   `npm run cf:build` in place of `build`)
 - `npm run cf:preview` — build and run in the real Workers runtime at http://localhost:8787; use it to test
   anything Cloudflare-specific
-- `npm run verify:build` — after a build, fails if < 50% of route pages have fares (CI and Deploy run it; relies
-  on the `data-fares-checked` attribute on route pages, so keep it)
+- `npm run verify:build` — after a build, fails if < 50% of route pages have fares (relies on the
+  `data-fares-checked` attribute on route pages, so keep it) or any page's HTML is over 120 KB. CPU per request
+  grows with page size (measured: 89 KB ≈ 7.5 ms, 157 KB ≈ 11 ms), so keep pages lean. CI and Deploy run it
 - `npm run smoke:deploy -- <url>` — post-deploy checks (the Deploy workflow runs it)
 - `postcss` is pinned via `overrides` in package.json to a patched version — keep it until Next ships the fix
 
