@@ -88,6 +88,7 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
 | `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
+| `npm run verify:build` | After a build: fails if fewer than half the route pages have fares (CI and Deploy run it) |
 | `npm run cf:preview` | Build for Cloudflare and run it locally in the real Workers runtime (http://localhost:8787) |
 | `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
 | `npm run cf:deploy` | Build and deploy from your machine (needs `npx wrangler login`); prefer the Deploy workflow |
@@ -245,7 +246,7 @@ still works, but the click is lost). Restore it from the Supabase dashboard; ste
 ## Testing
 
 ```bash
-npm test          # 61 tests, about 2 seconds
+npm test          # 65 tests, about 2 seconds
 npm run check     # lint + typecheck + tests + build, same as CI
 ```
 
@@ -259,6 +260,7 @@ npm run check     # lint + typecheck + tests + build, same as CI
 | `tests/search.test.ts` | Search validation, flexible-dates dedupe, always-live provider calls |
 | `tests/api-fares.test.ts` | Full `/api/fares` handler: demo flag, partners, 400s, cache and noindex headers |
 | `tests/deploy.test.ts` | Guards the static Cloudflare setup: no page with time-based `revalidate` |
+| `tests/check-build-fares.test.ts` | Build guard: counts route pages with fares, blocks a deploy when most are empty |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and the Cloudflare build on every push and PR. It also
 runs `npm audit` twice: **production dependencies must be clean** (this blocks the build), and dev tooling is
@@ -298,8 +300,9 @@ failing.
    | `NEXT_PUBLIC_CONTACT_EMAIL` | Variable | Contact for POPIA requests |
    | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELSTART_AFFILIATE_LINK`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Secrets | As in [Environment variables](#environment-variables); add them as approvals land |
 
-4. **Actions → Deploy → Run workflow.** The last step smoke-tests the live site, and fails if a Travelpayouts
-   token is configured but the site still serves demo data.
+4. **Actions → Deploy → Run workflow.** Before deploying it checks the build has fares (if the fare API failed
+   during the build, it stops and the last good version stays live). The last step smoke-tests the live site,
+   and fails if a Travelpayouts token is configured but the site still serves demo data.
 5. **Custom domain:** add the domain to Cloudflare (free plan) and switch its nameservers to Cloudflare at your
    registrar. Then **Workers & Pages → fares-za → Settings → Domains & Routes → Add → Custom domain**. Update
    `NEXT_PUBLIC_SITE_URL` and run the workflow again.
@@ -370,6 +373,7 @@ This isn't legal advice. Have the privacy policy reviewed before collecting pers
 | "View on Travelstart" missing | `TRAVELSTART_AFFILIATE_LINK` not set, by design |
 | Clicks not in Supabase | Check both Supabase variables are set. Logs show `[click] insert failed: …` with the reason |
 | Sitemap URLs show localhost | Set the `NEXT_PUBLIC_SITE_URL` repository variable and run the Deploy workflow |
+| Deploy failed at "Refuse to deploy a build without fares" | The fare API failed during the build (look for `[travelpayouts] HTTP …` in the build log). The previous version is still live; the next scheduled run retries |
 | Deploy run says "Skipping deploy" | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets not set yet |
 | Prices' "Checked" times getting old | Scheduled deploys stopped or failing: check the Actions tab (re-enable Deploy if disabled) |
 | Error 1102 "Worker exceeded resource limits" | CPU over 10 ms per request on Free. See [Limits to watch](#limits-to-watch) |

@@ -106,6 +106,9 @@ GitHub Actions. The `FareProvider` interface is the seam.
 - **Scheduled rebuilds depend on GitHub Actions.** Runs can start late. In a public repo, scheduled workflows
   are disabled after 60 days without repository activity; GitHub emails first, and you re-enable them in the
   Actions tab. Prices keep their "Checked …" time, so a missed rebuild shows as older times, never as fresh.
+  If the fare API fails during a build, `npm run verify:build` stops the deploy and the last good version stays.
+- **API rate limit vs route count.** Each build makes ~3 calls per route page (140 today). Travelpayouts allows
+  600/minute on this endpoint (June 2024 figure), so watch it when `routePairs` grows towards ~150.
 - **Supabase free projects pause when idle.** Click logging fails silently while paused; restore it in the
   Supabase dashboard. Real traffic keeps it awake.
 - **Payouts:** Travelpayouts pays from $50 via PayPal or $400 by bank transfer to a USD/EUR account; available

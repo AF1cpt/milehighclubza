@@ -75,6 +75,10 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: npm run cf:build
 
+      - name: Refuse to deploy a build without fares (fare API down during the build)
+        if: steps.gate.outputs.ready == 'true'
+        run: npm run verify:build
+
       - name: Deploy, uploading the Worker's secrets with this version
         if: steps.gate.outputs.ready == 'true'
         run: |

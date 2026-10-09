@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "verify:travelpayouts": "node scripts/verify-travelpayouts.mjs",
+    "verify:build": "node scripts/check-build-fares.mjs",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

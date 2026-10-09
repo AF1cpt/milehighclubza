@@ -125,7 +125,8 @@ export default async function RoutePage({ params }: { params: Params }) {
             )}
           </p>
           {checkedAt && (
-            <p className="text-xs text-ink-soft">
+            // data-fares-checked marks a page that has fares; scripts/check-build-fares.mjs counts it.
+            <p className="text-xs text-ink-soft" data-fares-checked={checkedAt}>
               Cached partner prices, checked {formatCheckedAt(checkedAt)}. They may have changed; the booking site
               shows the final price.
             </p>
