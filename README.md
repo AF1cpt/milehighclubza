@@ -120,7 +120,7 @@ degrades gracefully without it.
 - **Click-out tracking** at `/go`: every partner click gets a unique sub-ID so commissions can be traced back to
   the exact page and route that earned them.
 - **Compliance**: affiliate disclosure (`/how-we-make-money`), POPIA privacy draft (`/privacy`), cookie consent
-  banner, "found Xh ago · price may have changed" on every fare.
+  banner, "Checked 09 Oct, 14:05 SAST · cached price, may have changed" on every fare.
 - **SEO plumbing**: `sitemap.xml`, `robots.txt` (blocks `/go` and `/search` from indexing), Open Graph metadata.
 - **Performance**: about 108 kB per page, no client-side data fetching, which suits prepaid mobile data.
 
@@ -286,7 +286,7 @@ it in `getFareProvider()`.
 ## Compliance
 
 - **No scraping.** All data comes from partner APIs we're licensed to use.
-- **Honest prices.** Cached fares always show when they were found and that they may change. No "guaranteed
+- **Honest prices.** Cached fares always show when we checked them (absolute SA time) and that they may change. No "guaranteed
   lowest" claims.
 - **Affiliate disclosure** in the footer of every page and on `/how-we-make-money`.
 - **POPIA.** No analytics or marketing cookies before consent. Click logs hold no IP address or personal details.

@@ -38,9 +38,9 @@ export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[
       price: Math.round(i.price),
       airline: i.airline,
       transfers: i.transfers ?? 0,
-      // The Data API does not return a per-price timestamp on this endpoint; we record fetch time
-      // and always label prices as "recently found, may have changed".
-      foundAt: now.toISOString(),
+      // This endpoint has no per-price "found at" timestamp, and its cache keeps prices for up to
+      // ~7 days. We record when we fetched it and label it as a cached price that may have changed.
+      checkedAt: now.toISOString(),
       source: "travelpayouts" as const,
     }))
     .sort((a, b) => a.price - b.price);

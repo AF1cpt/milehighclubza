@@ -6,7 +6,10 @@ affiliate commission when users click out to a partner and book. We do NOT sell 
 ## Non-negotiables
 - **No scraping** of airline/OTA/meta-search sites, ever (ToS + SA Cybercrimes Act risk). Data comes only from
   partner APIs (Travelpayouts now; Skyscanner/KAYAK/Aviasales live search once traffic qualifies).
-- **Never present cached prices as live.** Every price shows "Found Xh ago · price may have changed".
+- **Never present cached prices as live.** Every price shows when we checked it, as an absolute SA time
+  ("Checked 09 Oct, 14:05 SAST · cached price, may have changed"). Never a relative "2h ago": pages are
+  pre-rendered, so a relative time would freeze and make old prices look fresh. The partner API has no
+  per-price found-at time, so `Fare.checkedAt` is our fetch time.
 - **Demo data must always be labelled.** `SampleProvider` is only used when `TRAVELPAYOUTS_TOKEN` is unset, and
   `<DemoBanner/>` must render on any page that shows fares.
 - **/go never accepts a URL from the client.** Partner URLs are built server-side in `src/lib/deeplinks.ts`

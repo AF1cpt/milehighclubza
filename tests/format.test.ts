@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { airlineName, formatDay, formatMonth, formatZar, timeAgo } from "@/lib/format";
+import { airlineName, formatCheckedAt, formatDay, formatMonth, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 
 describe("site config", () => {
@@ -28,16 +28,17 @@ describe("dates", () => {
   });
 });
 
-describe("timeAgo", () => {
-  const now = Date.parse("2026-10-02T12:00:00Z");
-  it("covers minutes, hours and days", () => {
-    expect(timeAgo("2026-10-02T11:50:00Z", now)).toBe("under an hour ago");
-    expect(timeAgo("2026-10-02T07:00:00Z", now)).toBe("5h ago");
-    expect(timeAgo("2026-09-28T12:00:00Z", now)).toBe("4 days ago");
+describe("formatCheckedAt", () => {
+  it("shows an absolute South African time, so a cached page never looks fresher than it is", () => {
+    const out = formatCheckedAt("2026-10-09T12:05:00Z");
+    expect(out).toMatch(/0?9 Oct/);
+    expect(out).toContain("14:05");
+    expect(out).toMatch(/SAST$/);
+    expect(out).not.toMatch(/ago/);
   });
 
-  it("never shows negative time for future timestamps", () => {
-    expect(timeAgo("2026-10-03T12:00:00Z", now)).toBe("under an hour ago");
+  it("rolls the date over at SA midnight, not UTC midnight", () => {
+    expect(formatCheckedAt("2026-10-09T22:30:00Z")).toMatch(/10 Oct, 00:30 SAST/);
   });
 });
 

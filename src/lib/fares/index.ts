@@ -29,6 +29,12 @@ export function cheapestPerDay(fares: Fare[]): Fare[] {
   return [...best.values()].sort((a, b) => a.departDate.localeCompare(b.departDate));
 }
 
+/** Earliest `checkedAt` across fares, so a page-level "checked" label never overstates freshness. */
+export function oldestCheck(fares: Fare[]): string | null {
+  if (fares.length === 0) return null;
+  return fares.reduce((oldest, f) => (f.checkedAt < oldest ? f.checkedAt : oldest), fares[0].checkedAt);
+}
+
 /** Next N months as "YYYY-MM", starting with the current month. */
 export function upcomingMonths(n: number, from = new Date()): string[] {
   return Array.from({ length: n }, (_, i) => {

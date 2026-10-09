@@ -2,8 +2,8 @@ import Link from "next/link";
 import { DemoBanner } from "@/components/DemoBanner";
 import { SearchForm } from "@/components/SearchForm";
 import { routes } from "@/data/routes";
-import { cheapestPerDay, getFareProvider, upcomingMonths } from "@/lib/fares";
-import { formatZar } from "@/lib/format";
+import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths } from "@/lib/fares";
+import { formatCheckedAt, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 
 export const revalidate = 3600;
@@ -27,11 +27,12 @@ async function cheapestFrom(slug: string) {
     await getFareProvider().search({ origin: route.origin.iata, destination: route.destination.iata, depart: month, limit: 60 }),
   );
   const min = fares.length ? Math.min(...fares.map((f) => f.price)) : null;
-  return { route, min };
+  return { route, min, fares };
 }
 
 export default async function Home() {
   const deals = (await Promise.all(featured.map(cheapestFrom))).filter((d) => d !== null);
+  const checkedAt = oldestCheck(deals.flatMap((d) => d.fares));
 
   return (
     <>
@@ -65,6 +66,11 @@ export default async function Home() {
             </li>
           ))}
         </ul>
+        {checkedAt && (
+          <p className="text-xs text-ink-soft">
+            Cached partner prices, checked {formatCheckedAt(checkedAt)}. They may have changed.
+          </p>
+        )}
         <Link href="/flights" className="inline-block text-sm underline">All routes</Link>
       </section>
     </>
