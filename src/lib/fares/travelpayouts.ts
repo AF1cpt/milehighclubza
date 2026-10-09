@@ -1,3 +1,4 @@
+import { saDatePlus } from "@/lib/format";
 import type { Fare, FareFetchOptions, FareProvider, FareQuery } from "./types";
 
 /**
@@ -31,7 +32,7 @@ type TpResponse = { success: boolean; data?: TpItem[]; currency?: string; error?
 export function normaliseTravelpayouts(items: TpItem[], now = new Date(), answered = now): Fare[] {
   // Departure dates are local to the airport; compare against today's date in South Africa so a
   // stale cache entry for a flight that has already left is never shown as the "cheapest" fare.
-  const today = now.toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+  const today = saDatePlus(0, now);
   return items
     .filter((i) => typeof i.price === "number" && i.price > 0 && i.departure_at)
     .filter((i) => i.departure_at.slice(0, 10) >= today)
