@@ -49,6 +49,7 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 - [x] Honest "Checked … SAST" price labels (no fake "found 1h ago")
 - [x] Cloudflare Workers port with scheduled static rebuilds, deploy smoke test
 - [x] Supabase project restored; schema, view and RLS verified
+- [x] Build guard: no deploy if the fare API failed mid-build or a page is over the 120 KB CPU budget
 - [ ] Apply the new name (`src/config/site.ts`, `tests/format.test.ts`)
 - [ ] Run `npm run verify:travelpayouts` once the token exists (answers ZAR and FlySafair coverage)
 - [ ] After the first deploy, check CPU time per request in Workers Logs
@@ -56,9 +57,9 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 ## Phase 1 — Earn more per visitor (weeks 2–6, no traffic needed)
 
 Trigger: real fares showing.
-- [ ] Widen `/go` beyond flights (click target per product) + migration for the `clicks.partner` constraint
-- [ ] Car hire block on domestic destination pages (DiscoverCars)
-- [ ] eSIM block on international route pages (Airalo)
+- [x] Widen `/go` beyond flights + migration 0002 (applied to Supabase 9 Oct)
+- [x] Car hire box on every route and holiday page (DiscoverCars), eSIM box abroad (Airalo). Built and hidden
+      until **you** join each program and add `DISCOVERCARS_AFFILIATE_LINK` / `AIRALO_AFFILIATE_LINK` secrets
 - [ ] Kiwi.com as a second flight partner
 - [ ] Hotels block (Trip.com, or Booking.com via Awin/CJ if SA publishers are eligible)
 - [ ] Travel insurance on Schengen routes (Amsterdam, Paris): partner still to research
@@ -71,7 +72,8 @@ Trigger: real fares showing.
 
 ## Phase 3 — Traffic on autopilot (weeks 3–16)
 
-- [ ] Festive season, school holiday and long-weekend pages (SA calendar). Time-sensitive: December first
+- [x] December holidays page `/december-holiday-flights` (cheapest day out and home, key dates)
+- [ ] School holiday and long-weekend pages for the rest of the year (Easter/April, June-July, September)
 - [ ] Daily `fare_snapshot` job → our own price history → "cheapest month" charts nobody else has
 - [ ] Monthly "SA fare index" page, pitched to local media for links
 - [ ] Expand `routePairs` towards ~150; noindex any route with < 14 days of data. Every page must carry real
