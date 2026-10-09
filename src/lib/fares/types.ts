@@ -28,8 +28,13 @@ export type FareQuery = {
   limit?: number;
 };
 
+export type FareFetchOptions = {
+  /** Ask the provider now, skipping our data cache (search API). Default: cached for page rendering. */
+  live?: boolean;
+};
+
 export interface FareProvider {
   readonly id: Fare["source"];
   /** Cheapest cached fares matching the query, sorted by price ascending. */
-  search(query: FareQuery): Promise<Fare[]>;
+  search(query: FareQuery, options?: FareFetchOptions): Promise<Fare[]>;
 }

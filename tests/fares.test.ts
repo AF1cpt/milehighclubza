@@ -49,6 +49,16 @@ describe("TravelpayoutsProvider", () => {
     expect(init.headers["X-Access-Token"]).toBe("secret-token");
   });
 
+  it("skips the data cache for live searches", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ success: true, data: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+    const p = new TravelpayoutsProvider("t");
+    await p.search({ origin: "JNB", destination: "CPT", depart: "2026-11-14" }, { live: true });
+    await p.search({ origin: "JNB", destination: "CPT", depart: "2026-11" });
+    expect(fetchMock.mock.calls[0][1].cache).toBe("no-store");
+    expect(fetchMock.mock.calls[1][1].cache).not.toBe("no-store");
+  });
+
   it("returns an empty list instead of throwing on API errors", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 429 })));

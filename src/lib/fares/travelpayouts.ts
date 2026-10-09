@@ -1,4 +1,4 @@
-import type { Fare, FareProvider, FareQuery } from "./types";
+import type { Fare, FareFetchOptions, FareProvider, FareQuery } from "./types";
 
 /**
  * Travelpayouts / Aviasales Data API (cached prices from Aviasales users' searches, kept up to ~7 days).
@@ -54,7 +54,7 @@ export class TravelpayoutsProvider implements FareProvider {
     private readonly revalidateSeconds = 3600,
   ) {}
 
-  async search(q: FareQuery): Promise<Fare[]> {
+  async search(q: FareQuery, options: FareFetchOptions = {}): Promise<Fare[]> {
     const params = new URLSearchParams({
       origin: q.origin,
       destination: q.destination,
@@ -68,7 +68,7 @@ export class TravelpayoutsProvider implements FareProvider {
 
     const res = await fetch(`${ENDPOINT}?${params}`, {
       headers: { "X-Access-Token": this.token, "Accept-Encoding": "gzip, deflate" },
-      next: { revalidate: this.revalidateSeconds },
+      ...(options.live ? { cache: "no-store" as const } : { next: { revalidate: this.revalidateSeconds } }),
     });
     if (!res.ok) {
       console.error(`[travelpayouts] HTTP ${res.status} for ${q.origin}-${q.destination} ${q.depart}`);

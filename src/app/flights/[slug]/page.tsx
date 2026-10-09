@@ -6,6 +6,7 @@ import { FareList } from "@/components/FareList";
 import { PriceCalendar } from "@/components/PriceCalendar";
 import { SearchForm } from "@/components/SearchForm";
 import { getRouteBySlug, routes } from "@/data/routes";
+import { enabledPartners } from "@/lib/deeplinks";
 import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths, type Fare } from "@/lib/fares";
 import { airlineName, formatCheckedAt, formatMonth, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
@@ -131,7 +132,7 @@ export default async function RoutePage({ params }: { params: Params }) {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">Cheapest dates (one way)</h2>
-          <FareList fares={cheapest} sourcePage={`route:${route.slug}`} />
+          <FareList fares={cheapest} partners={enabledPartners()} sourcePage={`route:${route.slug}`} />
         </section>
 
         <section className="space-y-6">
