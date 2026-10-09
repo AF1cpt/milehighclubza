@@ -56,7 +56,7 @@ describe("TravelpayoutsProvider", () => {
     await p.search({ origin: "JNB", destination: "CPT", depart: "2026-11-14" }, { live: true });
     await p.search({ origin: "JNB", destination: "CPT", depart: "2026-11" });
     expect(fetchMock.mock.calls[0][1].cache).toBe("no-store");
-    expect(fetchMock.mock.calls[1][1].cache).not.toBe("no-store");
+    expect(fetchMock.mock.calls[1][1].cache).toBe("force-cache");
   });
 
   it("returns an empty list instead of throwing on API errors", async () => {

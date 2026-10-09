@@ -6,7 +6,8 @@ import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths } from "@/
 import { formatCheckedAt, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 
-export const revalidate = 3600;
+// Fully static: rebuilt with fresh fares by the scheduled deploy (.github/workflows/deploy.yml).
+export const revalidate = false;
 
 const featured = [
   "johannesburg-to-cape-town",

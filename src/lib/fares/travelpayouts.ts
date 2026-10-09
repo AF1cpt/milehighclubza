@@ -3,7 +3,8 @@ import type { Fare, FareFetchOptions, FareProvider, FareQuery } from "./types";
 /**
  * Travelpayouts / Aviasales Data API (cached prices from Aviasales users' searches, kept up to ~7 days).
  * Docs: https://support.travelpayouts.com/hc/en-us/articles/203956163-Aviasales-Data-API
- * Rate limit for /v3/prices_for_dates: 600 requests/minute (June 2024). We cache via Next's fetch cache.
+ * Rate limit for /v3/prices_for_dates: 600 requests/minute (June 2024). Page builds use the fetch cache
+ * (one call per route/month per build); live searches skip it.
  *
  * VERIFY when your token arrives: that `currency=zar` is accepted, and the exact field names below.
  */
@@ -49,10 +50,7 @@ export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[
 export class TravelpayoutsProvider implements FareProvider {
   readonly id = "travelpayouts" as const;
 
-  constructor(
-    private readonly token: string,
-    private readonly revalidateSeconds = 3600,
-  ) {}
+  constructor(private readonly token: string) {}
 
   async search(q: FareQuery, options: FareFetchOptions = {}): Promise<Fare[]> {
     const params = new URLSearchParams({
@@ -68,7 +66,8 @@ export class TravelpayoutsProvider implements FareProvider {
 
     const res = await fetch(`${ENDPOINT}?${params}`, {
       headers: { "X-Access-Token": this.token, "Accept-Encoding": "gzip, deflate" },
-      ...(options.live ? { cache: "no-store" as const } : { next: { revalidate: this.revalidateSeconds } }),
+      // Pages are static and rebuilt on a schedule, so build-time fetches are cached for the whole build.
+      cache: options.live ? "no-store" : "force-cache",
     });
     if (!res.ok) {
       console.error(`[travelpayouts] HTTP ${res.status} for ${q.origin}-${q.destination} ${q.depart}`);

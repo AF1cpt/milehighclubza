@@ -11,7 +11,9 @@ import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths, type Fare
 import { airlineName, formatCheckedAt, formatMonth, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 
-export const revalidate = 21600; // 6h — matches the cache age of the underlying data
+// Fully static: rebuilt with fresh fares every 6h by the scheduled deploy (.github/workflows/deploy.yml).
+// On the Workers Free plan, re-rendering on Cloudflare would exceed the 10 ms CPU limit.
+export const revalidate = false;
 export const dynamicParams = false;
 
 type Params = Promise<{ slug: string }>;
