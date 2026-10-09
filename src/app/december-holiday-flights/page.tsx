@@ -45,8 +45,10 @@ async function loadPair([a, b]: [string, string], season: FestiveSeason) {
   return {
     from,
     to,
-    out: cheapestInWindow(outFares, season.out, 3),
-    home: cheapestInWindow(homeFares, season.home, 3),
+    // One fare per direction: every card costs Worker CPU on each request (the cached page is parsed per
+    // request; 3 per direction measured ~11 ms, over the Free plan's 10 ms). Route pages have the full calendar.
+    out: cheapestInWindow(outFares, season.out, 1),
+    home: cheapestInWindow(homeFares, season.home, 1),
   };
 }
 
@@ -99,7 +101,7 @@ export default async function DecemberHolidayFlights() {
           </nav>
           <h1 className="text-3xl font-semibold tracking-tight">Cheap flights for the December holidays {year}</h1>
           <p className="text-ink-soft max-w-2xl">
-            The cheapest days we&apos;ve seen to fly out before Christmas ({windowLabel(season.out)}) and home after New
+            The cheapest day we&apos;ve seen to fly out before Christmas ({windowLabel(season.out)}) and home after New
             Year ({windowLabel(season.home)}), one way, in rand.
           </p>
           {checkedAt && (
@@ -142,20 +144,20 @@ export default async function DecemberHolidayFlights() {
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="space-y-3">
                 <h3 className="font-medium">
-                  Fly out: {from.city} → {to.city}
+                  Cheapest day out: {from.city} → {to.city}
                 </h3>
                 <FareList fares={out} partners={partners} sourcePage={`festive:${from.iata}-${to.iata}:out`} />
               </div>
               <div className="space-y-3">
                 <h3 className="font-medium">
-                  Fly home: {to.city} → {from.city}
+                  Cheapest day home: {to.city} → {from.city}
                 </h3>
                 <FareList fares={home} partners={partners} sourcePage={`festive:${from.iata}-${to.iata}:home`} />
               </div>
             </div>
             <AddonOffers from={from} to={to} sourcePage={`festive:${from.iata}-${to.iata}`} level={3} />
             <p className="text-sm">
-              Other dates:{" "}
+              More dates and prices:{" "}
               <Link href={`/flights/${routeSlug(from, to)}`} className="underline">
                 {from.city} to {to.city}
               </Link>{" "}
