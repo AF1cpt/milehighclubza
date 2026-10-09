@@ -40,6 +40,8 @@ jobs:
       TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
       TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
       TRAVELSTART_AFFILIATE_LINK: ${{ secrets.TRAVELSTART_AFFILIATE_LINK }}
+      DISCOVERCARS_AFFILIATE_LINK: ${{ secrets.DISCOVERCARS_AFFILIATE_LINK }}
+      AIRALO_AFFILIATE_LINK: ${{ secrets.AIRALO_AFFILIATE_LINK }}
       # Runtime only: /go click logging.
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -83,7 +85,7 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: |
           node -e '
-            const keys = ["TRAVELPAYOUTS_TOKEN", "TRAVELPAYOUTS_MARKER", "TRAVELSTART_AFFILIATE_LINK", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+            const keys = ["TRAVELPAYOUTS_TOKEN", "TRAVELPAYOUTS_MARKER", "TRAVELSTART_AFFILIATE_LINK", "DISCOVERCARS_AFFILIATE_LINK", "AIRALO_AFFILIATE_LINK", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
             const secrets = Object.fromEntries(keys.filter((k) => process.env[k]).map((k) => [k, process.env[k]]));
             require("fs").writeFileSync(process.env.RUNNER_TEMP + "/worker-secrets.json", JSON.stringify(secrets), { mode: 0o600 });
           '

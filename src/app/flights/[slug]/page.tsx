@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddonOffers } from "@/components/AddonOffers";
 import { DemoBanner } from "@/components/DemoBanner";
 import { FareList } from "@/components/FareList";
 import { PriceCalendar } from "@/components/PriceCalendar";
@@ -137,6 +138,8 @@ export default async function RoutePage({ params }: { params: Params }) {
           <h2 className="text-xl font-semibold">Cheapest dates (one way)</h2>
           <FareList fares={cheapest} partners={enabledPartners()} sourcePage={`route:${route.slug}`} />
         </section>
+
+        <AddonOffers from={route.origin} to={route.destination} sourcePage={`route:${route.slug}`} />
 
         <section className="space-y-6">
           <h2 className="text-xl font-semibold">Price calendar</h2>

@@ -105,6 +105,8 @@ server-side ones to the Worker. Every one is optional; the site degrades gracefu
 | `TRAVELPAYOUTS_TOKEN` | Demo mode: sample prices + banner | Real cached fares from Aviasales | Travelpayouts → Profile → API token |
 | `TRAVELPAYOUTS_MARKER` | Aviasales clicks don't earn | Commission on Aviasales bookings | Travelpayouts → your partner ID (marker) |
 | `TRAVELSTART_AFFILIATE_LINK` | Travelstart button hidden | "View on Travelstart" shown first | Impact → Travelstart → tracking link |
+| `DISCOVERCARS_AFFILIATE_LINK` | Car hire box hidden | "Car hire in …" on every route and holiday page | DiscoverCars program (e.g. Travelpayouts) → tracking link; add `{subid}` where it takes a sub-ID |
+| `AIRALO_AFFILIATE_LINK` | eSIM box hidden | "Mobile data in …" on international pages | Airalo program (Travelpayouts or Impact) → tracking link; add `{subid}` where it takes a sub-ID |
 | `SUPABASE_URL` | Clicks logged to server console | Clicks stored in Postgres | Supabase → Project settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | (as above) | (as above) | Supabase → Project settings → API → `service_role` |
 | `NEXT_PUBLIC_SITE_URL` | Canonicals point at localhost | Correct canonicals and sitemap | Your domain, e.g. `https://milehighclub.co.za` |
@@ -302,7 +304,7 @@ failing.
    | `CLOUDFLARE_ACCOUNT_ID` | Secret | Account ID from step 2 |
    | `NEXT_PUBLIC_SITE_URL` | Variable | The workers.dev URL now, your domain later. Required |
    | `NEXT_PUBLIC_CONTACT_EMAIL` | Variable | Contact for POPIA requests |
-   | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELSTART_AFFILIATE_LINK`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Secrets | As in [Environment variables](#environment-variables); add them as approvals land |
+   | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELSTART_AFFILIATE_LINK`, `DISCOVERCARS_AFFILIATE_LINK`, `AIRALO_AFFILIATE_LINK`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Secrets | As in [Environment variables](#environment-variables); add them as approvals land |
 
 4. **Actions → Deploy → Run workflow.** Before deploying it checks the build has fares (if the fare API failed
    during the build, it stops and the last good version stays live). The last step smoke-tests the live site,
@@ -347,9 +349,14 @@ are published, added to the sitemap and pre-rendered automatically. Both airport
 **Add an airport.** Add an entry to `src/data/airports.ts` (IATA code, city, name, country, URL slug, domestic flag).
 The route tests check codes and slugs are unique and well-formed.
 
-**Add a partner.** Add it to the `Partner` type, `buildPartnerUrl`, `enabledPartners` and `partnerLabels` in
-`src/lib/deeplinks.ts`, add it to `PARTNERS` in `src/app/go/route.ts`, add it to the `clicks.partner` check
-constraint with a new migration, and write tests.
+**Add a flight partner.** Add it to the `FlightPartner` type, `buildPartnerUrl`, `enabledPartners` and
+`partnerLabels` in `src/lib/deeplinks.ts`, add it to `PARTNERS` in `src/app/go/route.ts`, add it to the
+`clicks.partner` check constraint with a new migration, and write tests.
+
+**Add an add-on partner** (car hire, eSIM, hotels…). Add it to `AddonPartner`, `addons` (its env var and kind)
+and `partnerLabels` in `src/lib/deeplinks.ts`, give its kind copy in `src/components/AddonOffers.tsx`, extend the
+`clicks.partner` constraint with a migration, add the env var to `.env.example` and the Deploy workflow, and
+write tests. `/go` picks it up automatically.
 
 **Add a fare source.** Implement `FareProvider` in `src/lib/fares/`, return `Fare[]` sorted by price, and select
 it in `getFareProvider()`.

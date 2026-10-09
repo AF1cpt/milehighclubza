@@ -47,7 +47,9 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/data/airports.ts` — supported airports (add here first)
 - `src/data/routes.ts` — `routePairs` = published SEO route pages (both directions auto-generated)
 - `src/lib/fares/` — `FareProvider` interface; `travelpayouts.ts` (real), `sample.ts` (demo); `index.ts` picks one
-- `src/lib/deeplinks.ts` — partner URL builders + sub-ID; formats marked VERIFY must be checked against dashboards
+- `src/lib/deeplinks.ts` — partner URL builders + sub-ID; formats marked VERIFY must be checked against dashboards.
+  Add-ons (`addons`: car hire, eSIM) use the dashboard tracking link from env with a `{subid}` placeholder: never
+  hand-build add-on URLs. `src/components/AddonOffers.tsx` shows them, hidden until configured
 - `src/lib/clicks.ts` — click logging to Supabase (`clicks` table), never throws
 - `src/app/go/route.ts` — validate → log click (sub-ID) → 302 to partner
 - `src/app/api/fares/route.ts` + `src/components/SearchResults.tsx` — search: static page, results fetched as JSON

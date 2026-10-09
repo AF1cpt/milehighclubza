@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AddonOffers } from "@/components/AddonOffers";
 import { DemoBanner } from "@/components/DemoBanner";
 import { FareList } from "@/components/FareList";
 import { getAirport } from "@/data/airports";
@@ -152,6 +153,7 @@ export default async function DecemberHolidayFlights() {
                 <FareList fares={home} partners={partners} sourcePage={`festive:${from.iata}-${to.iata}:home`} />
               </div>
             </div>
+            <AddonOffers from={from} to={to} sourcePage={`festive:${from.iata}-${to.iata}`} level={3} />
             <p className="text-sm">
               Other dates:{" "}
               <Link href={`/flights/${routeSlug(from, to)}`} className="underline">
