@@ -4,6 +4,7 @@ import { SearchForm } from "@/components/SearchForm";
 import { routes } from "@/data/routes";
 import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths } from "@/lib/fares";
 import { formatCheckedAt, formatZar } from "@/lib/format";
+import { festiveSeason, isFestivePromoTime } from "@/lib/festive";
 import { site } from "@/config/site";
 
 // Fully static: rebuilt with fresh fares by the scheduled deploy (.github/workflows/deploy.yml).
@@ -50,6 +51,20 @@ export default async function Home() {
           <SearchForm />
         </div>
       </section>
+
+      {isFestivePromoTime() && (
+        <section className="mx-auto max-w-5xl px-4 pt-10">
+          <Link
+            href="/december-holiday-flights"
+            className="block rounded-xl border border-brand bg-sky p-4 hover:bg-white"
+          >
+            <p className="font-semibold">December holidays {festiveSeason().year}: cheapest days to fly →</p>
+            <p className="text-sm text-ink-soft">
+              Fly out before Christmas and home after New Year: Cape Town, Durban, Gqeberha, George, Mauritius and more.
+            </p>
+          </Link>
+        </section>
+      )}
 
       <section className="mx-auto max-w-5xl px-4 py-10 space-y-4">
         <h2 className="text-xl font-semibold">Popular routes this month</h2>

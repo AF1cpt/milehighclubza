@@ -123,6 +123,9 @@ server-side ones to the Worker. Every one is optional; the site degrades gracefu
   - FAQ answers generated from real data: cheapest month, cheapest weekday, airlines seen
   - Breadcrumb and FAQ structured data (JSON-LD), canonical URLs, rebuilt with fresh fares every 6 hours
 - **Routes index** at `/flights`, split into domestic and international.
+- **December holidays page** at `/december-holiday-flights`: cheapest days to fly out before Christmas and home
+  after New Year on 8 holiday routes, key dates (public holidays computed from the Public Holidays Act, school
+  dates from `src/data/festive.ts`), FAQ from real data. Promoted on the home page from September to 15 January.
 - **Click-out tracking** at `/go`: every partner click gets a unique sub-ID so commissions can be traced back to
   the exact page and route that earned them.
 - **Compliance**: affiliate disclosure (`/how-we-make-money`), POPIA privacy draft (`/privacy`), cookie consent
@@ -194,6 +197,7 @@ src/
 │   ├── api/fares/route.ts        Search results as JSON (validated, live provider call)
 │   ├── flights/page.tsx          All routes index
 │   ├── flights/[slug]/page.tsx   SEO route pages (static, rebuilt every 6h)
+│   ├── december-holiday-flights/ Festive season page (static, rebuilt every 6h)
 │   ├── go/route.ts               Click-out: validate → log → 302
 │   ├── how-we-make-money/        Affiliate disclosure
 │   ├── privacy/                  POPIA privacy policy (draft)

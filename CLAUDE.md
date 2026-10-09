@@ -53,6 +53,8 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/app/api/fares/route.ts` + `src/components/SearchResults.tsx` — search: static page, results fetched as JSON
 - `src/lib/fares/search.ts` — search validation and exact + flexible results (shared by API and client)
 - `src/app/flights/[slug]` — static route pages (rebuilt every 6h), price calendars, FAQ JSON-LD from real data only
+- `src/app/december-holiday-flights` + `src/lib/festive.ts` + `src/data/festive.ts` — festive season page. Add each
+  year's school dates to `schoolSummerBreak` from the gazetted DBE calendar (missing years just hide them)
 - `open-next.config.ts` · `wrangler.jsonc` · `.github/workflows/deploy.yml` — Cloudflare build, Worker, deploys
 - `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID
 
