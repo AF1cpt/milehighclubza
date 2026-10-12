@@ -53,7 +53,7 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 - [x] First live deploy (12 Oct): smoke test passed with real fares on the workers.dev URL
 - [x] Aviasales links in the format Travelpayouts' Create link generates (`tp.media/r`, with our project ID)
 - [ ] Apply the new name (`src/config/site.ts`, `tests/format.test.ts`)
-- [x] Live Travelpayouts check (12 Oct): ZAR works; FlySafair, LIFT, SAA, CemAir present; Airlink not seen. Runs from
+- [x] Live Travelpayouts check (12 Oct): ZAR works; FlySafair, LIFT, SAA, CemAir present; Airlink in later months. Runs from
       GitHub → Actions → Verify Travelpayouts
 - [x] Route pages with no fares are `noindex` and out of the sitemap (3 on 12 Oct: no one-way data in the API)
 - [x] After the first deploy, check CPU time per request: median 5.11 ms on 12 Oct (limit 10 ms)
@@ -109,8 +109,6 @@ GitHub Actions. The `FareProvider` interface is the seam.
 
 ## Known risks
 
-- **Airlink isn't in the data** (12 Oct live check; FlySafair and LIFT are). On routes Airlink flies, "cheapest" may
-  not be true.
 - **Travelstart clicks land on its homepage** until we get the deep-link format: users must search again.
 - **Free plan headroom is thin** (~7–8 ms measured locally vs a 10 ms limit). Cloudflare tolerates occasional
   overruns but stops Workers that overrun consistently (Error 1102). Fallback: Workers Paid, $5/month.

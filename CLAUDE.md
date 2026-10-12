@@ -72,8 +72,8 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
    on 12 Oct 2026 showed USD), `sub_id` on the long `tp.media/r` link (the rest of the format matches the dashboard's
    Create link), payout methods for SA residents.
 2. Travelstart (Impact): sub-ID param (`subId1`?), deep-link URL format for a specific search, attribution window.
-3. Airlink (4Z) didn't appear in the 12 Oct 2026 live check; FlySafair (FA), LIFT (GE), SAA and CemAir did. If Airlink
-   stays missing, show a "check airline direct" note on its routes.
+3. Domestic airlines: answered 12 Oct 2026. FlySafair (FA), LIFT (GE), SAA, CemAir and Airlink (4Z) are all in the data
+   (Airlink only in some months, e.g. JNB–CPT from Feb 2027). Re-check if a carrier seems to vanish.
 
 ## Conventions
 - Server components by default; `"use client"` only for interactive bits.

@@ -341,7 +341,7 @@ GitHub is the one place to manage secrets: each deploy uploads the server-side o
 - [ ] Supabase secrets set → a test click appears in `clicks`
 - [ ] Verify the items marked `VERIFY` in `src/lib/deeplinks.ts` and `src/lib/fares/travelpayouts.ts`
       against your partner dashboards (sub-ID parameter names, `currency=zar`)
-- [x] Check whether partner data includes **FlySafair and LIFT** domestic fares (both in, 12 Oct 2026; Airlink not seen)
+- [x] Check whether partner data includes **FlySafair and LIFT** domestic fares (both in, 12 Oct 2026; Airlink too, in some months)
 - [ ] Workers Logs: CPU per request comfortably under 10 ms
 - [ ] Real contact email set; privacy policy reviewed before collecting any emails or phone numbers
 - [ ] Search Console + sitemap submitted
