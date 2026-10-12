@@ -79,7 +79,9 @@ Trigger: real fares showing.
 
 - [x] December holidays page `/december-holiday-flights` (cheapest day out and home, key dates)
 - [ ] School holiday and long-weekend pages for the rest of the year (Easter/April, June-July, September)
-- [ ] Daily `fare_snapshot` job → our own price history → "cheapest month" charts nobody else has
+- [x] Daily `fare_snapshots` job (12 Oct): cheapest fare per route and departure month, 12 months ahead
+- [ ] After ~4 weeks of snapshots: "cheapest month to fly" and price-trend charts on route pages, labelled as
+      past prices
 - [ ] Monthly "SA fare index" page, pitched to local media for links
 - [ ] Expand `routePairs` towards ~150; pages with no fares are already noindexed; consider a
       higher bar (e.g. < 14 days of data). Every page must carry real

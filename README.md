@@ -93,6 +93,7 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
 | `npm run cf:deploy` | Build and deploy from your machine (needs `npx wrangler login`); prefer the Deploy workflow |
 | `npm run smoke:deploy -- <url>` | Post-deploy checks against a live URL: pages, search API, real fares when a token is set |
+| `npm run snapshot:fares` | Daily price history: cheapest fare per route and departure month (next 12) into Supabase `fare_snapshots`. The Snapshot fares workflow runs it at 05:41 SAST |
 
 ## Environment variables
 
@@ -240,6 +241,7 @@ Supabase project **milehighclubza** (London region). The schema lives in
 |---|---|
 | `clicks` | One row per partner click. `id` is the sub-ID sent to the partner |
 | `conversions` | Partner-reported bookings, imported later, joined on `sub_id` |
+| `fare_snapshots` | Our price history: one row per route, departure month and day (cheapest, median, days with fares) |
 | `revenue_by_page` | View: clicks, bookings and commission per source page |
 
 Row-level security is **on** with no public policies, so only the server (service role key) can read or write.
@@ -268,6 +270,7 @@ npm run check     # lint + typecheck + tests + build, same as CI
 | `tests/search.test.ts` | Search validation, flexible-dates dedupe, always-live provider calls |
 | `tests/api-fares.test.ts` | Full `/api/fares` handler: demo flag, partners, 400s, cache and noindex headers |
 | `tests/deploy.test.ts` | Guards the static Cloudflare setup: no page with time-based `revalidate` |
+| `tests/snapshot.test.ts` | Price-history rows: daily cheapest, median, ties, our airport codes over the API's city codes |
 | `tests/check-build.test.ts` | Build guard: blocks a deploy when most route pages have no fares or any page is over the size budget |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and the Cloudflare build on every push and PR. It also

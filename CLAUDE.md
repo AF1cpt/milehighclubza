@@ -41,6 +41,8 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
   `data-fares-checked` attribute on route pages, so keep it) or any page's HTML is over 120 KB. CPU per request
   grows with page size (measured: 89 KB ≈ 7.5 ms, 157 KB ≈ 11 ms), so keep pages lean. CI and Deploy run it
 - `npm run smoke:deploy -- <url>` — post-deploy checks (the Deploy workflow runs it)
+- `npm run snapshot:fares` — daily price history into Supabase `fare_snapshots` (`.github/workflows/snapshot-fares.yml`,
+  05:41 SAST). Scripts that need `src/` code are `.ts` run with `tsx`
 - `postcss` is pinned via `overrides` in package.json to a patched version — keep it until Next ships the fix
 
 ## Map
@@ -60,7 +62,8 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/app/december-holiday-flights` + `src/lib/festive.ts` + `src/data/festive.ts` — festive season page. Add each
   year's school dates to `schoolSummerBreak` from the gazetted DBE calendar (missing years just hide them)
 - `open-next.config.ts` · `wrangler.jsonc` · `.github/workflows/deploy.yml` — Cloudflare build, Worker, deploys
-- `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID
+- `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID; `fare_snapshots` holds our
+  price history (`src/lib/fares/snapshot.ts`). Label anything built from it as past prices, never as current fares
 
 ## Open items to verify (do not guess)
 `npm run verify:travelpayouts` (or GitHub → Actions → Verify Travelpayouts, which has the secrets) answers items 1 and
