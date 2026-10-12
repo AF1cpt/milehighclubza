@@ -87,7 +87,7 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run lint` | ESLint (Next.js rules) |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
-| `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
+| `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link. Add routes (`-- CPT-BFN`) to inspect them. Also runs from GitHub → Actions → Verify Travelpayouts with the repo secrets |
 | `npm run verify:build` | After a build: fails if fewer than half the route pages have fares, or any page is over 120 KB (CI and Deploy run it) |
 | `npm run cf:preview` | Build for Cloudflare and run it locally in the real Workers runtime (http://localhost:8787) |
 | `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
@@ -261,6 +261,7 @@ npm run check     # lint + typecheck + tests + build, same as CI
 |---|---|
 | `tests/format.test.ts` | Brand config, rand formatting, dates, absolute SAST "checked" times, airline names |
 | `tests/routes.test.ts` | Airport data integrity, route slugs, both directions, domestic flag |
+| `tests/sitemap.test.ts` | Route pages without fares are left out of the sitemap |
 | `tests/fares.test.ts` | Travelpayouts normalising, token kept out of URLs, error handling, sample data, helpers |
 | `tests/deeplinks.test.ts` | Partner URL formats, sub-IDs, Travelstart toggle, device detection |
 | `tests/go.test.ts` | Full `/go` handler: redirect, logging, unique sub-IDs, 8 rejection cases, no-cache headers |
@@ -337,7 +338,7 @@ GitHub is the one place to manage secrets: each deploy uploads the server-side o
 - [ ] Supabase secrets set → a test click appears in `clicks`
 - [ ] Verify the items marked `VERIFY` in `src/lib/deeplinks.ts` and `src/lib/fares/travelpayouts.ts`
       against your partner dashboards (sub-ID parameter names, `currency=zar`)
-- [ ] Check whether partner data includes **FlySafair and LIFT** domestic fares
+- [x] Check whether partner data includes **FlySafair and LIFT** domestic fares (both in, 12 Oct 2026; Airlink not seen)
 - [ ] Workers Logs: CPU per request comfortably under 10 ms
 - [ ] Real contact email set; privacy policy reviewed before collecting any emails or phone numbers
 - [ ] Search Console + sitemap submitted

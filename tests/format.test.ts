@@ -59,6 +59,7 @@ describe("airlineName", () => {
   it("maps SA carriers and falls back to the code", () => {
     expect(airlineName("FA")).toBe("FlySafair");
     expect(airlineName("4Z")).toBe("Airlink");
+    expect(airlineName("GE")).toBe("LIFT");
     expect(airlineName("ZZ")).toBe("ZZ");
   });
 });

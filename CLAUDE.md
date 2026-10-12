@@ -55,19 +55,22 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/app/go/route.ts` — validate → log click (sub-ID) → 302 to partner
 - `src/app/api/fares/route.ts` + `src/components/SearchResults.tsx` — search: static page, results fetched as JSON
 - `src/lib/fares/search.ts` — search validation and exact + flexible results (shared by API and client)
-- `src/app/flights/[slug]` — static route pages (rebuilt every 6h), price calendars, FAQ JSON-LD from real data only
+- `src/app/flights/[slug]` — static route pages (rebuilt every 6h), price calendars, FAQ JSON-LD from real data only.
+  A page with no fares is `noindex` and left out of the sitemap until fares return (`routeFaresByMonth`)
 - `src/app/december-holiday-flights` + `src/lib/festive.ts` + `src/data/festive.ts` — festive season page. Add each
   year's school dates to `schoolSummerBreak` from the gazetted DBE calendar (missing years just hide them)
 - `open-next.config.ts` · `wrangler.jsonc` · `.github/workflows/deploy.yml` — Cloudflare build, Worker, deploys
 - `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID
 
 ## Open items to verify (do not guess)
-`npm run verify:travelpayouts` answers items 1 and 3 with live data. Run it whenever the token changes.
-1. Travelpayouts: `currency=zar` support, `sub_id` on the long `tp.media/r` link (the rest of the format matches the
-   dashboard's Create link, 12 Oct 2026), payout methods for SA residents.
+`npm run verify:travelpayouts` (or GitHub → Actions → Verify Travelpayouts, which has the secrets) answers items 1 and
+3 with live data. Run it whenever the token changes; pass routes (`-- CPT-BFN`) to see why a page has no fares.
+1. Travelpayouts: whether Aviasales honours `currency=zar` in its search URL (the fare API does return ZAR; a test click
+   on 12 Oct 2026 showed USD), `sub_id` on the long `tp.media/r` link (the rest of the format matches the dashboard's
+   Create link), payout methods for SA residents.
 2. Travelstart (Impact): sub-ID param (`subId1`?), deep-link URL format for a specific search, attribution window.
-3. Whether Aviasales data includes LIFT domestic fares (FlySafair is in: seen live on JNB–CPT, 12 Oct 2026). If not,
-   show "check airline direct" notes.
+3. Airlink (4Z) didn't appear in the 12 Oct 2026 live check; FlySafair (FA), LIFT (GE), SAA and CemAir did. If Airlink
+   stays missing, show a "check airline direct" note on its routes.
 
 ## Conventions
 - Server components by default; `"use client"` only for interactive bits.
