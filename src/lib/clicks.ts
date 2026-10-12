@@ -5,7 +5,8 @@ export type ClickRecord = {
   partner: string;
   origin: string;
   destination: string;
-  depart_date: string;
+  /** Null for add-on clicks (car hire, eSIM), which have no flight date. */
+  depart_date: string | null;
   return_date: string | null;
   price_shown: number | null;
   source_page: string | null;

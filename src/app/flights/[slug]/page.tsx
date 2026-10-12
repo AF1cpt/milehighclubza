@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddonOffers } from "@/components/AddonOffers";
 import { DemoBanner } from "@/components/DemoBanner";
 import { FareList } from "@/components/FareList";
 import { PriceCalendar } from "@/components/PriceCalendar";
@@ -125,7 +126,8 @@ export default async function RoutePage({ params }: { params: Params }) {
             )}
           </p>
           {checkedAt && (
-            <p className="text-xs text-ink-soft">
+            // data-fares-checked marks a page that has fares; scripts/check-build.mjs counts it.
+            <p className="text-xs text-ink-soft" data-fares-checked={checkedAt}>
               Cached partner prices, checked {formatCheckedAt(checkedAt)}. They may have changed; the booking site
               shows the final price.
             </p>
@@ -136,6 +138,8 @@ export default async function RoutePage({ params }: { params: Params }) {
           <h2 className="text-xl font-semibold">Cheapest dates (one way)</h2>
           <FareList fares={cheapest} partners={enabledPartners()} sourcePage={`route:${route.slug}`} />
         </section>
+
+        <AddonOffers from={route.origin} to={route.destination} sourcePage={`route:${route.slug}`} />
 
         <section className="space-y-6">
           <h2 className="text-xl font-semibold">Price calendar</h2>

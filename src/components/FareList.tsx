@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Fare } from "@/lib/fares";
-import { partnerLabels, type Partner } from "@/lib/deeplinks";
+import { partnerLabels, type FlightPartner } from "@/lib/deeplinks";
 import { airlineName, formatCheckedAt, formatDay, formatZar } from "@/lib/format";
 
-export function goHref(fare: Fare, partner: Partner, sourcePage: string): string {
+export function goHref(fare: Fare, partner: FlightPartner, sourcePage: string): string {
   const q = new URLSearchParams({
     p: partner,
     o: fare.origin,
@@ -27,7 +27,7 @@ export function FareList({
   cheapestOverall,
 }: {
   fares: Fare[];
-  partners: Partner[];
+  partners: FlightPartner[];
   sourcePage: string;
   /** Lowest price across everything on the page; the badge only shows on fares that match it. */
   cheapestOverall?: number;

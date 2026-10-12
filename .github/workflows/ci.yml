@@ -27,6 +27,8 @@ jobs:
       - run: npm test
       # Same as `npm run build`, plus the Cloudflare Workers bundle (catches adapter breakage before deploy).
       - run: npm run cf:build
+      # Fails if most route pages came out with no fares (the same guard the Deploy workflow uses).
+      - run: npm run verify:build
       # Blocking: anything that ships to the live site must have no high/critical advisories.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high

@@ -3,17 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { airports } from "@/data/airports";
+import { saDatePlus as todayPlus } from "@/lib/format";
 
 type Props = {
   defaultOrigin?: string;
   defaultDestination?: string;
 };
-
-function todayPlus(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 export function SearchForm({ defaultOrigin = "JNB", defaultDestination = "CPT" }: Props) {
   const router = useRouter();

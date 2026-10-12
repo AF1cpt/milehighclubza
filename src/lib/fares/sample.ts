@@ -1,4 +1,5 @@
 import { getAirport } from "@/data/airports";
+import { saDatePlus } from "@/lib/format";
 import type { Fare, FareProvider, FareQuery } from "./types";
 
 /**
@@ -57,7 +58,7 @@ export class SampleProvider implements FareProvider {
     const carriers =
       intlCarriers[q.destination] ?? intlCarriers[q.origin] ?? domesticCarriers;
     const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    const today = saDatePlus(0, now);
 
     const fares: Fare[] = dates
       .filter((date) => date >= today)

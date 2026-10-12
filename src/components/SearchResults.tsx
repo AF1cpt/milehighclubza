@@ -5,14 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAirport } from "@/data/airports";
 import { routeSlug, routes } from "@/data/routes";
-import type { Partner } from "@/lib/deeplinks";
+import type { FlightPartner } from "@/lib/deeplinks";
 import { parseSearch, searchQuery, type SearchResult } from "@/lib/fares/search";
 import { formatDay } from "@/lib/format";
 import { DemoNotice } from "./DemoNotice";
 import { FareList } from "./FareList";
 import { SearchForm } from "./SearchForm";
 
-type ApiResponse = SearchResult & { demo: boolean; partners: Partner[] };
+type ApiResponse = SearchResult & { demo: boolean; partners: FlightPartner[] };
 type State = { query: string; data?: ApiResponse; failed?: boolean };
 
 /** Search results, fetched from /api/fares. The page itself is static so it costs almost no server CPU. */

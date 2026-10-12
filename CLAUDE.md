@@ -37,6 +37,9 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
   `npm run cf:build` in place of `build`)
 - `npm run cf:preview` — build and run in the real Workers runtime at http://localhost:8787; use it to test
   anything Cloudflare-specific
+- `npm run verify:build` — after a build, fails if < 50% of route pages have fares (relies on the
+  `data-fares-checked` attribute on route pages, so keep it) or any page's HTML is over 120 KB. CPU per request
+  grows with page size (measured: 89 KB ≈ 7.5 ms, 157 KB ≈ 11 ms), so keep pages lean. CI and Deploy run it
 - `npm run smoke:deploy -- <url>` — post-deploy checks (the Deploy workflow runs it)
 - `postcss` is pinned via `overrides` in package.json to a patched version — keep it until Next ships the fix
 
@@ -45,12 +48,16 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/data/airports.ts` — supported airports (add here first)
 - `src/data/routes.ts` — `routePairs` = published SEO route pages (both directions auto-generated)
 - `src/lib/fares/` — `FareProvider` interface; `travelpayouts.ts` (real), `sample.ts` (demo); `index.ts` picks one
-- `src/lib/deeplinks.ts` — partner URL builders + sub-ID; formats marked VERIFY must be checked against dashboards
+- `src/lib/deeplinks.ts` — partner URL builders + sub-ID; formats marked VERIFY must be checked against dashboards.
+  Add-ons (`addons`: car hire, eSIM) use the dashboard tracking link from env with a `{subid}` placeholder: never
+  hand-build add-on URLs. `src/components/AddonOffers.tsx` shows them, hidden until configured
 - `src/lib/clicks.ts` — click logging to Supabase (`clicks` table), never throws
 - `src/app/go/route.ts` — validate → log click (sub-ID) → 302 to partner
 - `src/app/api/fares/route.ts` + `src/components/SearchResults.tsx` — search: static page, results fetched as JSON
 - `src/lib/fares/search.ts` — search validation and exact + flexible results (shared by API and client)
 - `src/app/flights/[slug]` — static route pages (rebuilt every 6h), price calendars, FAQ JSON-LD from real data only
+- `src/app/december-holiday-flights` + `src/lib/festive.ts` + `src/data/festive.ts` — festive season page. Add each
+  year's school dates to `schoolSummerBreak` from the gazetted DBE calendar (missing years just hide them)
 - `open-next.config.ts` · `wrangler.jsonc` · `.github/workflows/deploy.yml` — Cloudflare build, Worker, deploys
 - `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID
 

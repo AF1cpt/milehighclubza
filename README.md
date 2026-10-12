@@ -88,6 +88,7 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
 | `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
+| `npm run verify:build` | After a build: fails if fewer than half the route pages have fares, or any page is over 120 KB (CI and Deploy run it) |
 | `npm run cf:preview` | Build for Cloudflare and run it locally in the real Workers runtime (http://localhost:8787) |
 | `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
 | `npm run cf:deploy` | Build and deploy from your machine (needs `npx wrangler login`); prefer the Deploy workflow |
@@ -104,6 +105,8 @@ server-side ones to the Worker. Every one is optional; the site degrades gracefu
 | `TRAVELPAYOUTS_TOKEN` | Demo mode: sample prices + banner | Real cached fares from Aviasales | Travelpayouts → Profile → API token |
 | `TRAVELPAYOUTS_MARKER` | Aviasales clicks don't earn | Commission on Aviasales bookings | Travelpayouts → your partner ID (marker) |
 | `TRAVELSTART_AFFILIATE_LINK` | Travelstart button hidden | "View on Travelstart" shown first | Impact → Travelstart → tracking link |
+| `DISCOVERCARS_AFFILIATE_LINK` | Car hire box hidden | "Car hire in …" on every route and holiday page | DiscoverCars program (e.g. Travelpayouts) → tracking link; add `{subid}` where it takes a sub-ID |
+| `AIRALO_AFFILIATE_LINK` | eSIM box hidden | "Mobile data in …" on international pages | Airalo program (Travelpayouts or Impact) → tracking link; add `{subid}` where it takes a sub-ID |
 | `SUPABASE_URL` | Clicks logged to server console | Clicks stored in Postgres | Supabase → Project settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | (as above) | (as above) | Supabase → Project settings → API → `service_role` |
 | `NEXT_PUBLIC_SITE_URL` | Canonicals point at localhost | Correct canonicals and sitemap | Your domain, e.g. `https://milehighclub.co.za` |
@@ -122,6 +125,9 @@ server-side ones to the Worker. Every one is optional; the site degrades gracefu
   - FAQ answers generated from real data: cheapest month, cheapest weekday, airlines seen
   - Breadcrumb and FAQ structured data (JSON-LD), canonical URLs, rebuilt with fresh fares every 6 hours
 - **Routes index** at `/flights`, split into domestic and international.
+- **December holidays page** at `/december-holiday-flights`: cheapest days to fly out before Christmas and home
+  after New Year on 8 holiday routes, key dates (public holidays computed from the Public Holidays Act, school
+  dates from `src/data/festive.ts`), FAQ from real data. Promoted on the home page from September to 15 January.
 - **Click-out tracking** at `/go`: every partner click gets a unique sub-ID so commissions can be traced back to
   the exact page and route that earned them.
 - **Compliance**: affiliate disclosure (`/how-we-make-money`), POPIA privacy draft (`/privacy`), cookie consent
@@ -193,6 +199,7 @@ src/
 │   ├── api/fares/route.ts        Search results as JSON (validated, live provider call)
 │   ├── flights/page.tsx          All routes index
 │   ├── flights/[slug]/page.tsx   SEO route pages (static, rebuilt every 6h)
+│   ├── december-holiday-flights/ Festive season page (static, rebuilt every 6h)
 │   ├── go/route.ts               Click-out: validate → log → 302
 │   ├── how-we-make-money/        Affiliate disclosure
 │   ├── privacy/                  POPIA privacy policy (draft)
@@ -245,7 +252,7 @@ still works, but the click is lost). Restore it from the Supabase dashboard; ste
 ## Testing
 
 ```bash
-npm test          # 61 tests, about 2 seconds
+npm test          # 65 tests, about 2 seconds
 npm run check     # lint + typecheck + tests + build, same as CI
 ```
 
@@ -259,6 +266,7 @@ npm run check     # lint + typecheck + tests + build, same as CI
 | `tests/search.test.ts` | Search validation, flexible-dates dedupe, always-live provider calls |
 | `tests/api-fares.test.ts` | Full `/api/fares` handler: demo flag, partners, 400s, cache and noindex headers |
 | `tests/deploy.test.ts` | Guards the static Cloudflare setup: no page with time-based `revalidate` |
+| `tests/check-build.test.ts` | Build guard: blocks a deploy when most route pages have no fares or any page is over the size budget |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and the Cloudflare build on every push and PR. It also
 runs `npm audit` twice: **production dependencies must be clean** (this blocks the build), and dev tooling is
@@ -296,10 +304,11 @@ failing.
    | `CLOUDFLARE_ACCOUNT_ID` | Secret | Account ID from step 2 |
    | `NEXT_PUBLIC_SITE_URL` | Variable | The workers.dev URL now, your domain later. Required |
    | `NEXT_PUBLIC_CONTACT_EMAIL` | Variable | Contact for POPIA requests |
-   | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELSTART_AFFILIATE_LINK`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Secrets | As in [Environment variables](#environment-variables); add them as approvals land |
+   | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELSTART_AFFILIATE_LINK`, `DISCOVERCARS_AFFILIATE_LINK`, `AIRALO_AFFILIATE_LINK`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Secrets | As in [Environment variables](#environment-variables); add them as approvals land |
 
-4. **Actions → Deploy → Run workflow.** The last step smoke-tests the live site, and fails if a Travelpayouts
-   token is configured but the site still serves demo data.
+4. **Actions → Deploy → Run workflow.** Before deploying it checks the build has fares (if the fare API failed
+   during the build, it stops and the last good version stays live). The last step smoke-tests the live site,
+   and fails if a Travelpayouts token is configured but the site still serves demo data.
 5. **Custom domain:** add the domain to Cloudflare (free plan) and switch its nameservers to Cloudflare at your
    registrar. Then **Workers & Pages → fares-za → Settings → Domains & Routes → Add → Custom domain**. Update
    `NEXT_PUBLIC_SITE_URL` and run the workflow again.
@@ -340,9 +349,14 @@ are published, added to the sitemap and pre-rendered automatically. Both airport
 **Add an airport.** Add an entry to `src/data/airports.ts` (IATA code, city, name, country, URL slug, domestic flag).
 The route tests check codes and slugs are unique and well-formed.
 
-**Add a partner.** Add it to the `Partner` type, `buildPartnerUrl`, `enabledPartners` and `partnerLabels` in
-`src/lib/deeplinks.ts`, add it to `PARTNERS` in `src/app/go/route.ts`, add it to the `clicks.partner` check
-constraint with a new migration, and write tests.
+**Add a flight partner.** Add it to the `FlightPartner` type, `buildPartnerUrl`, `enabledPartners` and
+`partnerLabels` in `src/lib/deeplinks.ts`, add it to `PARTNERS` in `src/app/go/route.ts`, add it to the
+`clicks.partner` check constraint with a new migration, and write tests.
+
+**Add an add-on partner** (car hire, eSIM, hotels…). Add it to `AddonPartner`, `addons` (its env var and kind)
+and `partnerLabels` in `src/lib/deeplinks.ts`, give its kind copy in `src/components/AddonOffers.tsx`, extend the
+`clicks.partner` constraint with a migration, add the env var to `.env.example` and the Deploy workflow, and
+write tests. `/go` picks it up automatically.
 
 **Add a fare source.** Implement `FareProvider` in `src/lib/fares/`, return `Fare[]` sorted by price, and select
 it in `getFareProvider()`.
@@ -370,6 +384,7 @@ This isn't legal advice. Have the privacy policy reviewed before collecting pers
 | "View on Travelstart" missing | `TRAVELSTART_AFFILIATE_LINK` not set, by design |
 | Clicks not in Supabase | Check both Supabase variables are set. Logs show `[click] insert failed: …` with the reason |
 | Sitemap URLs show localhost | Set the `NEXT_PUBLIC_SITE_URL` repository variable and run the Deploy workflow |
+| Deploy failed at "Refuse to deploy a build without fares" | The fare API failed during the build (look for `[travelpayouts] HTTP …` in the build log). The previous version is still live; the next scheduled run retries |
 | Deploy run says "Skipping deploy" | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets not set yet |
 | Prices' "Checked" times getting old | Scheduled deploys stopped or failing: check the Actions tab (re-enable Deploy if disabled) |
 | Error 1102 "Worker exceeded resource limits" | CPU over 10 ms per request on Free. See [Limits to watch](#limits-to-watch) |
@@ -387,4 +402,4 @@ open items to verify. A good first prompt:
 
 ---
 
-© MilehighclubZA. Private project.
+© MilehighclubZA. All rights reserved.

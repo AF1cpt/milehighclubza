@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/go/route";
 
 const BASE = "http://localhost:3000";
 let logs: string[] = [];
+
+afterEach(() => vi.unstubAllEnvs());
 
 beforeEach(() => {
   logs = [];
@@ -65,5 +67,28 @@ describe("/go click-out", () => {
     const logged = JSON.parse(logs[0].replace("[click] ", ""));
     expect(logged.price_shown).toBeNull();
     expect(logged.source_page).toHaveLength(120);
+  });
+
+  it("sends add-on clicks to the configured tracking link, logged without a flight date", async () => {
+    vi.stubEnv("DISCOVERCARS_AFFILIATE_LINK", "https://tp.example/r?marker=1&sub_id={subid}");
+    const res = await go("p=discovercars&o=JNB&d=CPT&src=route:johannesburg-to-cape-town");
+    expect(res.status).toBe(302);
+    const target = new URL(res.headers.get("location")!);
+    expect(target.hostname).toBe("tp.example");
+    const logged = JSON.parse(logs[0].replace("[click] ", ""));
+    expect(logged).toMatchObject({ partner: "discovercars", origin: "JNB", destination: "CPT", depart_date: null });
+    expect(target.searchParams.get("sub_id")).toBe(logged.id);
+  });
+
+  it.each([
+    ["add-on not configured", "p=airalo&o=JNB&d=LHR"],
+    ["add-on with a bad date", "p=discovercars&o=JNB&d=CPT&dep=soon"],
+    ["flight partner without a date", "p=aviasales&o=JNB&d=CPT"],
+    ["inherited object key as partner", "p=toString&o=JNB&d=CPT"],
+  ])("sends %s back home without logging", async (_label, q) => {
+    vi.stubEnv("DISCOVERCARS_AFFILIATE_LINK", "https://tp.example/r");
+    const res = await go(q);
+    expect(res.headers.get("location")).toBe(`${BASE}/`);
+    expect(logs).toHaveLength(0);
   });
 });

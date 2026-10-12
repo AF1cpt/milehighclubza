@@ -1,3 +1,4 @@
+import { saDatePlus } from "@/lib/format";
 import type { Fare, FareFetchOptions, FareProvider, FareQuery } from "./types";
 
 /**
@@ -24,10 +25,14 @@ type TpItem = {
 
 type TpResponse = { success: boolean; data?: TpItem[]; currency?: string; error?: string };
 
-export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[] {
+/**
+ * @param now      today's date, used to drop flights that have already left
+ * @param answered when the API produced this data (its `Date` header); becomes `checkedAt`
+ */
+export function normaliseTravelpayouts(items: TpItem[], now = new Date(), answered = now): Fare[] {
   // Departure dates are local to the airport; compare against today's date in South Africa so a
   // stale cache entry for a flight that has already left is never shown as the "cheapest" fare.
-  const today = now.toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+  const today = saDatePlus(0, now);
   return items
     .filter((i) => typeof i.price === "number" && i.price > 0 && i.departure_at)
     .filter((i) => i.departure_at.slice(0, 10) >= today)
@@ -40,11 +45,20 @@ export function normaliseTravelpayouts(items: TpItem[], now = new Date()): Fare[
       airline: i.airline,
       transfers: i.transfers ?? 0,
       // This endpoint has no per-price "found at" timestamp, and its cache keeps prices for up to
-      // ~7 days. We record when we fetched it and label it as a cached price that may have changed.
-      checkedAt: now.toISOString(),
+      // ~7 days. We record when the API answered and label it as a cached price that may have changed.
+      checkedAt: answered.toISOString(),
       source: "travelpayouts" as const,
     }))
     .sort((a, b) => a.price - b.price);
+}
+
+/**
+ * When the API answered, from the response's `Date` header. A response reused from Next's fetch cache
+ * keeps its original headers, so an old cached answer is never labelled as freshly checked.
+ */
+function answeredAt(res: Response): Date {
+  const d = new Date(res.headers.get("date") ?? "");
+  return Number.isNaN(d.getTime()) ? new Date() : d;
 }
 
 export class TravelpayoutsProvider implements FareProvider {
@@ -78,6 +92,6 @@ export class TravelpayoutsProvider implements FareProvider {
       console.error(`[travelpayouts] API error: ${json.error ?? "unknown"}`);
       return [];
     }
-    return normaliseTravelpayouts(json.data);
+    return normaliseTravelpayouts(json.data, new Date(), answeredAt(res));
   }
 }
