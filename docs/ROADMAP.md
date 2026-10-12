@@ -37,10 +37,10 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 
 **Owner:**
 - [ ] Pick the name; check the domain and trademarks
-- [ ] Create a free Cloudflare account; add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` as GitHub secrets
-- [ ] Set the `NEXT_PUBLIC_SITE_URL` repository variable (workers.dev URL first, then the domain)
-- [ ] Join Travelpayouts; add `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` as GitHub secrets
-- [ ] Add `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` as GitHub secrets
+- [x] Create a free Cloudflare account; add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` as GitHub secrets
+- [x] Set the `NEXT_PUBLIC_SITE_URL` repository variable to the workers.dev URL (change it once the domain is connected)
+- [x] Join Travelpayouts; add `TRAVELPAYOUTS_TOKEN` + `TRAVELPAYOUTS_MARKER` as GitHub secrets
+- [x] Add `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` as GitHub secrets
 - [ ] Connect the domain in Cloudflare (Worker → Settings → Domains & Routes)
 - [ ] Google Search Console: verify the domain, submit the sitemap
 - [ ] Apply to Travelstart on Impact once the site is live; ask for the deep-link format and sub-ID parameter
@@ -50,9 +50,12 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 - [x] Cloudflare Workers port with scheduled static rebuilds, deploy smoke test
 - [x] Supabase project restored; schema, view and RLS verified
 - [x] Build guard: no deploy if the fare API failed mid-build or a page is over the 120 KB CPU budget
+- [x] First live deploy (12 Oct): smoke test passed with real fares on the workers.dev URL
+- [x] Aviasales links in the format Travelpayouts' Create link generates (`tp.media/r`, with our project ID)
 - [ ] Apply the new name (`src/config/site.ts`, `tests/format.test.ts`)
 - [ ] Run `npm run verify:travelpayouts` once the token exists (answers ZAR and FlySafair coverage)
-- [ ] After the first deploy, check CPU time per request in Workers Logs
+- [x] After the first deploy, check CPU time per request: median 5.11 ms on 12 Oct (limit 10 ms)
+- [x] First click logged in Supabase from the live site (12 Oct)
 
 ## Phase 1 — Earn more per visitor (weeks 2–6, no traffic needed)
 
@@ -101,7 +104,8 @@ GitHub Actions. The `FareProvider` interface is the seam.
 
 ## Known risks
 
-- **FlySafair coverage is unknown.** If Aviasales data lacks it, "cheapest" on domestic routes may not be true.
+- **LIFT coverage is unknown** (FlySafair is in the data). If LIFT is missing, "cheapest" on domestic routes may
+  not be true.
 - **Travelstart clicks land on its homepage** until we get the deep-link format: users must search again.
 - **Free plan headroom is thin** (~7–8 ms measured locally vs a 10 ms limit). Cloudflare tolerates occasional
   overruns but stops Workers that overrun consistently (Error 1102). Fallback: Workers Paid, $5/month.

@@ -12,12 +12,25 @@ describe("deeplinks", () => {
     expect(aviasalesSearchSegment({ partner: "aviasales", origin: "JNB", destination: "CPT", departDate: "2026-11-14" })).toBe("JNB1411CPT1");
   });
 
-  it("adds marker and sub-ID to Aviasales links", () => {
-    const url = new URL(buildPartnerUrl({ partner: "aviasales", origin: "JNB", destination: "CPT", departDate: "2026-11-14" }, "abc123", { TRAVELPAYOUTS_MARKER: "999" })!);
-    expect(url.protocol).toBe("https:");
-    expect(url.hostname).toBe("www.aviasales.com");
-    expect(url.searchParams.get("marker")).toBe("999");
+  it("builds Aviasales links like Travelpayouts' Create link, plus our sub-ID", () => {
+    // From the dashboard (12 Oct 2026) for https://www.aviasales.com/search/JNB1411CPT1:
+    const dashboard = new URL("https://tp.media/r?campaign_id=100&marker=788924&p=4114&trs=584651&u=https%3A%2F%2Fwww.aviasales.com%2Fsearch%2FJNB1411CPT1");
+    const env = { TRAVELPAYOUTS_MARKER: "788924", TRAVELPAYOUTS_PROJECT_ID: "584651" };
+    const url = new URL(buildPartnerUrl({ partner: "aviasales", origin: "JNB", destination: "CPT", departDate: "2026-11-14" }, "abc123", env)!);
+
+    expect(url.origin + url.pathname).toBe(dashboard.origin + dashboard.pathname);
+    for (const key of ["campaign_id", "marker", "p", "trs"]) expect(url.searchParams.get(key)).toBe(dashboard.searchParams.get(key));
+    const target = new URL(url.searchParams.get("u")!);
+    expect(target.origin + target.pathname).toBe(dashboard.searchParams.get("u"));
+    expect(target.searchParams.get("currency")).toBe("zar");
     expect(url.searchParams.get("sub_id")).toBe("abc123");
+  });
+
+  it("links straight to Aviasales without a marker (nothing to track)", () => {
+    const url = new URL(buildPartnerUrl({ partner: "aviasales", origin: "JNB", destination: "CPT", departDate: "2026-11-14" }, "abc123", {})!);
+    expect(url.hostname).toBe("www.aviasales.com");
+    expect(url.pathname).toBe("/search/JNB1411CPT1");
+    expect(url.searchParams.has("sub_id")).toBe(false);
   });
 
   it("returns null for Travelstart until the affiliate link is configured", () => {
