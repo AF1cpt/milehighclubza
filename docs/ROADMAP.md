@@ -54,7 +54,8 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 - [x] Aviasales links in the format Travelpayouts' Create link generates (`tp.media/r`, with our project ID)
 - [ ] Apply the new name (`src/config/site.ts`, `tests/format.test.ts`)
 - [ ] Run `npm run verify:travelpayouts` once the token exists (answers ZAR and FlySafair coverage)
-- [ ] After the first deploy, check CPU time per request in Workers Logs
+- [x] After the first deploy, check CPU time per request: median 5.11 ms on 12 Oct (limit 10 ms)
+- [x] First click logged in Supabase from the live site (12 Oct)
 
 ## Phase 1 — Earn more per visitor (weeks 2–6, no traffic needed)
 
@@ -103,7 +104,8 @@ GitHub Actions. The `FareProvider` interface is the seam.
 
 ## Known risks
 
-- **FlySafair coverage is unknown.** If Aviasales data lacks it, "cheapest" on domestic routes may not be true.
+- **LIFT coverage is unknown** (FlySafair is in the data). If LIFT is missing, "cheapest" on domestic routes may
+  not be true.
 - **Travelstart clicks land on its homepage** until we get the deep-link format: users must search again.
 - **Free plan headroom is thin** (~7–8 ms measured locally vs a 10 ms limit). Cloudflare tolerates occasional
   overruns but stops Workers that overrun consistently (Error 1102). Fallback: Workers Paid, $5/month.

@@ -66,7 +66,8 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 1. Travelpayouts: `currency=zar` support, `sub_id` on the long `tp.media/r` link (the rest of the format matches the
    dashboard's Create link, 12 Oct 2026), payout methods for SA residents.
 2. Travelstart (Impact): sub-ID param (`subId1`?), deep-link URL format for a specific search, attribution window.
-3. Whether Aviasales data includes FlySafair / LIFT domestic fares. If not, show "check airline direct" notes.
+3. Whether Aviasales data includes LIFT domestic fares (FlySafair is in: seen live on JNB–CPT, 12 Oct 2026). If not,
+   show "check airline direct" notes.
 
 ## Conventions
 - Server components by default; `"use client"` only for interactive bits.
