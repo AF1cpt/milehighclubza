@@ -87,12 +87,13 @@ Settings → Billing). Codespaces stop after 30 idle minutes; stop yours manuall
 | `npm run lint` | ESLint (Next.js rules) |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | All four of the above, the same as CI. Run before every push |
-| `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link |
+| `npm run verify:travelpayouts` | Go-live check: token works, prices in ZAR, coverage per route, FlySafair present, sample affiliate link. Add routes (`-- CPT-BFN`) to inspect them. Also runs from GitHub → Actions → Verify Travelpayouts with the repo secrets |
 | `npm run verify:build` | After a build: fails if fewer than half the route pages have fares, or any page is over 120 KB (CI and Deploy run it) |
 | `npm run cf:preview` | Build for Cloudflare and run it locally in the real Workers runtime (http://localhost:8787) |
 | `npm run cf:build` | Cloudflare Workers build only (CI runs this instead of `npm run build`) |
 | `npm run cf:deploy` | Build and deploy from your machine (needs `npx wrangler login`); prefer the Deploy workflow |
 | `npm run smoke:deploy -- <url>` | Post-deploy checks against a live URL: pages, search API, real fares when a token is set |
+| `npm run snapshot:fares` | Daily price history: cheapest fare per route and departure month (next 12) into Supabase `fare_snapshots`. The Snapshot fares workflow runs it at 05:41 SAST |
 
 ## Environment variables
 
@@ -240,6 +241,7 @@ Supabase project **milehighclubza** (London region). The schema lives in
 |---|---|
 | `clicks` | One row per partner click. `id` is the sub-ID sent to the partner |
 | `conversions` | Partner-reported bookings, imported later, joined on `sub_id` |
+| `fare_snapshots` | Our price history: one row per route, departure month and day (cheapest, median, days with fares) |
 | `revenue_by_page` | View: clicks, bookings and commission per source page |
 
 Row-level security is **on** with no public policies, so only the server (service role key) can read or write.
@@ -261,12 +263,14 @@ npm run check     # lint + typecheck + tests + build, same as CI
 |---|---|
 | `tests/format.test.ts` | Brand config, rand formatting, dates, absolute SAST "checked" times, airline names |
 | `tests/routes.test.ts` | Airport data integrity, route slugs, both directions, domestic flag |
+| `tests/sitemap.test.ts` | Route pages without fares are left out of the sitemap |
 | `tests/fares.test.ts` | Travelpayouts normalising, token kept out of URLs, error handling, sample data, helpers |
 | `tests/deeplinks.test.ts` | Partner URL formats, sub-IDs, Travelstart toggle, device detection |
 | `tests/go.test.ts` | Full `/go` handler: redirect, logging, unique sub-IDs, 8 rejection cases, no-cache headers |
 | `tests/search.test.ts` | Search validation, flexible-dates dedupe, always-live provider calls |
 | `tests/api-fares.test.ts` | Full `/api/fares` handler: demo flag, partners, 400s, cache and noindex headers |
 | `tests/deploy.test.ts` | Guards the static Cloudflare setup: no page with time-based `revalidate` |
+| `tests/snapshot.test.ts` | Price-history rows: daily cheapest, median, ties, our airport codes over the API's city codes |
 | `tests/check-build.test.ts` | Build guard: blocks a deploy when most route pages have no fares or any page is over the size budget |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests and the Cloudflare build on every push and PR. It also
@@ -337,7 +341,7 @@ GitHub is the one place to manage secrets: each deploy uploads the server-side o
 - [ ] Supabase secrets set → a test click appears in `clicks`
 - [ ] Verify the items marked `VERIFY` in `src/lib/deeplinks.ts` and `src/lib/fares/travelpayouts.ts`
       against your partner dashboards (sub-ID parameter names, `currency=zar`)
-- [ ] Check whether partner data includes **FlySafair and LIFT** domestic fares
+- [x] Check whether partner data includes **FlySafair and LIFT** domestic fares (both in, 12 Oct 2026; Airlink too, in some months)
 - [ ] Workers Logs: CPU per request comfortably under 10 ms
 - [ ] Real contact email set; privacy policy reviewed before collecting any emails or phone numbers
 - [ ] Search Console + sitemap submitted

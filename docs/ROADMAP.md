@@ -53,7 +53,9 @@ Trigger: now. Done when real fares show on the live domain and the first click l
 - [x] First live deploy (12 Oct): smoke test passed with real fares on the workers.dev URL
 - [x] Aviasales links in the format Travelpayouts' Create link generates (`tp.media/r`, with our project ID)
 - [ ] Apply the new name (`src/config/site.ts`, `tests/format.test.ts`)
-- [ ] Run `npm run verify:travelpayouts` once the token exists (answers ZAR and FlySafair coverage)
+- [x] Live Travelpayouts check (12 Oct): ZAR works; FlySafair, LIFT, SAA, CemAir present; Airlink in later months. Runs from
+      GitHub → Actions → Verify Travelpayouts
+- [x] Route pages with no fares are `noindex` and out of the sitemap (3 on 12 Oct: no one-way data in the API)
 - [x] After the first deploy, check CPU time per request: median 5.11 ms on 12 Oct (limit 10 ms)
 - [x] First click logged in Supabase from the live site (12 Oct)
 
@@ -77,9 +79,12 @@ Trigger: real fares showing.
 
 - [x] December holidays page `/december-holiday-flights` (cheapest day out and home, key dates)
 - [ ] School holiday and long-weekend pages for the rest of the year (Easter/April, June-July, September)
-- [ ] Daily `fare_snapshot` job → our own price history → "cheapest month" charts nobody else has
+- [x] Daily `fare_snapshots` job (12 Oct): cheapest fare per route and departure month, 12 months ahead
+- [ ] After ~4 weeks of snapshots: "cheapest month to fly" and price-trend charts on route pages, labelled as
+      past prices
 - [ ] Monthly "SA fare index" page, pitched to local media for links
-- [ ] Expand `routePairs` towards ~150; noindex any route with < 14 days of data. Every page must carry real
+- [ ] Expand `routePairs` towards ~150; pages with no fares are already noindexed; consider a
+      higher bar (e.g. < 14 days of data). Every page must carry real
       data: Google's spam policies target mass-produced thin pages
 - [ ] Bag-inclusive price toggle (verified carrier rules table)
 
@@ -104,8 +109,6 @@ GitHub Actions. The `FareProvider` interface is the seam.
 
 ## Known risks
 
-- **LIFT coverage is unknown** (FlySafair is in the data). If LIFT is missing, "cheapest" on domestic routes may
-  not be true.
 - **Travelstart clicks land on its homepage** until we get the deep-link format: users must search again.
 - **Free plan headroom is thin** (~7–8 ms measured locally vs a 10 ms limit). Cloudflare tolerates occasional
   overruns but stops Workers that overrun consistently (Error 1102). Fallback: Workers Paid, $5/month.

@@ -41,8 +41,13 @@ const nextMonth = (() => {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)).toISOString().slice(0, 7);
 })();
 
-async function prices(origin, destination) {
+/** @param {Record<string, string | null>} overrides query params to change; null drops one */
+async function prices(origin, destination, overrides = {}) {
   const q = new URLSearchParams({ origin, destination, departure_at: nextMonth, currency: "zar", sorting: "price", limit: "100", one_way: "true" });
+  for (const [k, v] of Object.entries(overrides)) {
+    if (v === null) q.delete(k);
+    else q.set(k, v);
+  }
   const res = await fetch(`${API}/aviasales/v3/prices_for_dates?${q}`, {
     headers: { "X-Access-Token": token, "Accept-Encoding": "gzip, deflate" },
   });
@@ -107,8 +112,7 @@ for (const [o, d] of routes) {
 }
 
 console.log("\n3. Local airlines on domestic routes");
-// LIFT is left out on purpose: its airline code isn't confirmed, so it will show under "Other codes seen".
-const names = { FA: "FlySafair", "4Z": "Airlink", SA: "SAA", "5Z": "CemAir" };
+const names = { FA: "FlySafair", GE: "LIFT", "4Z": "Airlink", SA: "SAA", "5Z": "CemAir" };
 for (const [code, name] of Object.entries(names)) {
   if (domesticAirlines.has(code)) ok(`${name} (${code}) fares present`);
   else warn(`${name} (${code}) not seen this month`);
@@ -134,5 +138,26 @@ if (process.env.TRAVELPAYOUTS_PROJECT_ID) link.searchParams.set("trs", process.e
 link.searchParams.set("u", search.toString());
 link.searchParams.set("sub_id", "verify");
 console.log(`    ${marker ? link : search}`);
+
+// Optional: npm run verify:travelpayouts -- CPT-BFN JNB-AMS  (e.g. routes the build guard listed as empty)
+const asked = process.argv.slice(2).map((r) => r.toUpperCase().split("-")).filter((r) => r.length === 2);
+if (asked.length) {
+  // Same months as the route pages (src/lib/fares/index.ts upcomingMonths(3)).
+  const months = [0, 1, 2].map((i) => {
+    const d = new Date();
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + i, 1)).toISOString().slice(0, 7);
+  });
+  const count = ({ status, body }) => (status === 200 && body.success ? String(body.data?.length ?? 0) : `HTTP ${status} ${body.error ?? body.raw ?? ""}`.trim());
+  console.log("\n5. Routes you asked about (fares found; route pages use the one-way months)");
+  for (const [o, d] of asked) {
+    const perMonth = [];
+    for (const m of months) perMonth.push(`${m}: ${count(await prices(o, d, { departure_at: m }))}`);
+    const anyDate = count(await prices(o, d, { departure_at: null }));
+    const returns = count(await prices(o, d, { departure_at: null, one_way: "false" }));
+    const line = `${o}→${d}  one way ${perMonth.join(", ")} · any date: ${anyDate} · return trips: ${returns}`;
+    if (perMonth.some((p) => !p.endsWith(": 0"))) ok(line);
+    else warn(line);
+  }
+}
 
 console.log(failures ? `\nDone with ${failures} warning(s). Real data will work; review the items above.\n` : "\nAll checks passed. Real data is ready.\n");

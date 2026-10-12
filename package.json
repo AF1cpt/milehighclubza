@@ -15,7 +15,8 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "smoke:deploy": "node scripts/smoke-deploy.mjs"
+    "smoke:deploy": "node scripts/smoke-deploy.mjs",
+    "snapshot:fares": "tsx scripts/snapshot-fares.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.9",
@@ -33,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.27",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.3",
     "wrangler": "4.149.0"
