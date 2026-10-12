@@ -8,6 +8,7 @@ let logs: string[] = [];
 afterEach(() => vi.unstubAllEnvs());
 
 beforeEach(() => {
+  vi.stubEnv("TRAVELPAYOUTS_MARKER", "999");
   logs = [];
   vi.spyOn(console, "info").mockImplementation((...a: unknown[]) => void logs.push(a.join(" ")));
 });
@@ -23,8 +24,8 @@ describe("/go click-out", () => {
     });
     expect(res.status).toBe(302);
     const target = new URL(res.headers.get("location")!);
-    expect(target.hostname).toBe("www.aviasales.com");
-    expect(target.pathname).toBe("/search/JNB1411CPT18111");
+    expect(target.hostname).toBe("tp.media");
+    expect(new URL(target.searchParams.get("u")!).pathname).toBe("/search/JNB1411CPT18111");
     const subId = target.searchParams.get("sub_id")!;
     expect(subId).toMatch(/^[a-f0-9]{16}$/);
 

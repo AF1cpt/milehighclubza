@@ -11,6 +11,11 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Public IDs (they appear in every outbound link). Secrets are uploaded by .github/workflows/deploy.yml.
+  "vars": {
+    // Travelpayouts → Fares-za project; the `trs` on Aviasales links (src/lib/deeplinks.ts).
+    "TRAVELPAYOUTS_PROJECT_ID": "584651"
+  },
   // CPU time and errors per request show up in the dashboard under Workers Logs.
   "observability": {
     "enabled": true

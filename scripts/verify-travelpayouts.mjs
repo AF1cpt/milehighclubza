@@ -123,10 +123,16 @@ if (others.length) console.log(`    Other codes seen: ${others.join(", ")}`);
 console.log("\n4. Sample affiliate link (open it to check it lands on a real search)");
 const dd = (sample?.departure_at ?? `${nextMonth}-15`).slice(0, 10);
 const [, mm, day] = dd.split("-");
-const link = new URL(`https://www.aviasales.com/search/JNB${day}${mm}CPT1`);
-link.searchParams.set("currency", "zar");
+// Same format as src/lib/deeplinks.ts (and Travelpayouts → Create link).
+const search = new URL(`https://www.aviasales.com/search/JNB${day}${mm}CPT1`);
+search.searchParams.set("currency", "zar");
+const link = new URL("https://tp.media/r");
+link.searchParams.set("campaign_id", "100");
 if (marker) link.searchParams.set("marker", marker);
+link.searchParams.set("p", "4114");
+if (process.env.TRAVELPAYOUTS_PROJECT_ID) link.searchParams.set("trs", process.env.TRAVELPAYOUTS_PROJECT_ID);
+link.searchParams.set("u", search.toString());
 link.searchParams.set("sub_id", "verify");
-console.log(`    ${link}`);
+console.log(`    ${marker ? link : search}`);
 
 console.log(failures ? `\nDone with ${failures} warning(s). Real data will work; review the items above.\n` : "\nAll checks passed. Real data is ready.\n");

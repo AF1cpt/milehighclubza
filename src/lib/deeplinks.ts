@@ -67,11 +67,20 @@ export function buildPartnerUrl(
   }
 
   if (t.partner === "aviasales") {
-    // VERIFY: marker and sub_id parameter names in Travelpayouts → Tools → Links.
+    const search = new URL(`https://www.aviasales.com/search/${aviasalesSearchSegment(t)}`);
+    search.searchParams.set("currency", "zar"); // VERIFY: CLAUDE.md open item 1
     const marker = env.TRAVELPAYOUTS_MARKER;
-    const url = new URL(`https://www.aviasales.com/search/${aviasalesSearchSegment(t)}`);
-    url.searchParams.set("currency", "zar");
-    if (marker) url.searchParams.set("marker", marker);
+    if (!marker) return search.toString(); // no affiliate account (local dev): nothing to track
+
+    // Same format as Travelpayouts → Create link (checked 12 Oct 2026): campaign_id=100&marker=…&p=4114&trs=…&u=…
+    // p=4114 is the Aviasales program; trs is our Travelpayouts project (TRAVELPAYOUTS_PROJECT_ID in wrangler.jsonc).
+    // VERIFY: sub_id on this long form. Travelpayouts documents `sub_id` on its short links.
+    const url = new URL("https://tp.media/r");
+    url.searchParams.set("campaign_id", "100");
+    url.searchParams.set("marker", marker);
+    url.searchParams.set("p", "4114");
+    if (env.TRAVELPAYOUTS_PROJECT_ID) url.searchParams.set("trs", env.TRAVELPAYOUTS_PROJECT_ID);
+    url.searchParams.set("u", search.toString());
     url.searchParams.set("sub_id", subId);
     return url.toString();
   }

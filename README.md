@@ -104,6 +104,7 @@ server-side ones to the Worker. Every one is optional; the site degrades gracefu
 |---|---|---|---|
 | `TRAVELPAYOUTS_TOKEN` | Demo mode: sample prices + banner | Real cached fares from Aviasales | Travelpayouts → Profile → API token |
 | `TRAVELPAYOUTS_MARKER` | Aviasales clicks don't earn | Commission on Aviasales bookings | Travelpayouts → your partner ID (marker) |
+| `TRAVELPAYOUTS_PROJECT_ID` | Clicks aren't tied to our project in Travelpayouts stats | Clicks reported under the project | Travelpayouts → the `trs` in a Create link link. Public, so it lives in `wrangler.jsonc` `vars` |
 | `TRAVELSTART_AFFILIATE_LINK` | Travelstart button hidden | "View on Travelstart" shown first | Impact → Travelstart → tracking link |
 | `DISCOVERCARS_AFFILIATE_LINK` | Car hire box hidden | "Car hire in …" on every route and holiday page | DiscoverCars program (e.g. Travelpayouts) → tracking link; add `{subid}` where it takes a sub-ID |
 | `AIRALO_AFFILIATE_LINK` | eSIM box hidden | "Mobile data in …" on international pages | Airalo program (Travelpayouts or Impact) → tracking link; add `{subid}` where it takes a sub-ID |
@@ -167,7 +168,7 @@ scheduled deploy rebuilds them every 6 hours.
    │ 3. build the partner URL on the server (never from user input, so no open redirect)
    │ 4. log click → Supabase `clicks` (or console if not configured; a failed log never blocks the user)
    ▼
-302 → https://www.aviasales.com/search/JNB1411CPT1?marker=…&sub_id=<sub-ID>
+302 → https://tp.media/r?campaign_id=100&marker=…&p=4114&trs=…&u=<Aviasales search URL>&sub_id=<sub-ID>
 ```
 
 When the partner reports a booking, its report carries the same sub-ID. Import it into `conversions` and the
