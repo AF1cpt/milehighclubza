@@ -12,9 +12,9 @@
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "verify:travelpayouts": "node scripts/verify-travelpayouts.mjs",
     "verify:build": "node scripts/check-build.mjs",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "cf:preview": "npm run cf:build && opennextjs-cloudflare preview",
+    "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "smoke:deploy": "node scripts/smoke-deploy.mjs",
     "snapshot:fares": "tsx scripts/snapshot-fares.ts"
   },

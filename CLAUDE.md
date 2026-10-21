@@ -26,7 +26,9 @@ affiliate commission when users click out to a partner and book. We do NOT sell 
 
 ## Stack
 Next.js 15 (App Router, TS, Tailwind v4) on Cloudflare Workers Free via `@opennextjs/cloudflare` (pinned:
-1.20.10 pulls a `glob` with a high advisory) · Supabase Postgres (click + conversion logs) · Vitest 5 ·
+1.20.10 pulls a `glob` with a high advisory). Next 15 left its 2-year support window on 21 Oct 2026 and the adapter
+refuses to build it, so `cf:build` passes `--dangerouslyUseUnsupportedNextVersion` **temporarily**: upgrade to Next 16
+(supported to Oct 2027) and drop the flag · Supabase Postgres (click + conversion logs) · Vitest 5 ·
 GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets up GitHub Codespaces (Node 22 + Claude Code,
 `npm ci` on create, ports 3000 and 8787 for `cf:preview`). It's the default dev environment when local npm is blocked (e.g. corporate VPN).
 

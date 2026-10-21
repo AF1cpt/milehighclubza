@@ -109,6 +109,8 @@ GitHub Actions. The `FareProvider` interface is the seam.
 
 ## Known risks
 
+- **Next.js 15 is out of support since 21 Oct 2026** (no more security patches). Builds run with
+  `--dangerouslyUseUnsupportedNextVersion` until the Next 16 upgrade; do that upgrade first.
 - **Travelstart clicks land on its homepage** until we get the deep-link format: users must search again.
 - **Free plan headroom is thin** (~7–8 ms measured locally vs a 10 ms limit). Cloudflare tolerates occasional
   overruns but stops Workers that overrun consistently (Error 1102). Fallback: Workers Paid, $5/month.
