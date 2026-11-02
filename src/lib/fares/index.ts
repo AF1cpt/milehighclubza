@@ -29,6 +29,24 @@ export function cheapestPerDay(fares: Fare[]): Fare[] {
   return [...best.values()].sort((a, b) => a.departDate.localeCompare(b.departDate));
 }
 
+/**
+ * A route page's fares: the cheapest one-way fare per day for each of the next 3 months. Shared by the page,
+ * its metadata and the sitemap; identical build-time fetches are cached, so this costs no extra API calls.
+ */
+export async function routeFaresByMonth(
+  route: { origin: { iata: string }; destination: { iata: string } },
+  fareProvider: FareProvider = getFareProvider(),
+): Promise<{ month: string; fares: Fare[] }[]> {
+  return Promise.all(
+    upcomingMonths(3).map(async (month) => ({
+      month,
+      fares: cheapestPerDay(
+        await fareProvider.search({ origin: route.origin.iata, destination: route.destination.iata, depart: month, limit: 100 }),
+      ),
+    })),
+  );
+}
+
 /** Inclusive range of departure dates, "YYYY-MM-DD". */
 export type DateWindow = { from: string; to: string };
 

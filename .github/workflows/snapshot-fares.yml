@@ -1,0 +1,39 @@
+name: Snapshot fares
+
+# Daily price history (scripts/snapshot-fares.ts): the cheapest fare per route and departure month goes into
+# Supabase `fare_snapshots`. Writing every day also keeps the free Supabase project from pausing when idle.
+on:
+  schedule:
+    # 05:41 SAST every day. GitHub can start scheduled runs late when it's busy.
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+  # Changes to the job run it against real data straight away. Same-day reruns overwrite, never duplicate.
+  push:
+    paths:
+      - scripts/snapshot-fares.ts
+      - src/lib/fares/snapshot.ts
+      - .github/workflows/snapshot-fares.yml
+
+concurrency:
+  group: snapshot-fares
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run snapshot:fares

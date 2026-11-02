@@ -8,7 +8,7 @@ import { PriceCalendar } from "@/components/PriceCalendar";
 import { SearchForm } from "@/components/SearchForm";
 import { getRouteBySlug, routes } from "@/data/routes";
 import { enabledPartners } from "@/lib/deeplinks";
-import { cheapestPerDay, getFareProvider, oldestCheck, upcomingMonths, type Fare } from "@/lib/fares";
+import { oldestCheck, routeFaresByMonth, type Fare } from "@/lib/fares";
 import { airlineName, formatCheckedAt, formatMonth, formatZar } from "@/lib/format";
 import { site } from "@/config/site";
 
@@ -27,8 +27,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const route = getRouteBySlug((await params).slug);
   if (!route) return {};
   const title = `Cheap flights ${route.origin.city} to ${route.destination.city}`;
+  // A page without fares is thin content (Google's spam policies), so keep it out of search until fares
+  // return. The sitemap leaves it out too. The page itself still renders for anyone who follows a link.
+  const hasFares = (await routeFaresByMonth(route)).some((m) => m.fares.length > 0);
   return {
     title,
+    ...(hasFares ? {} : { robots: { index: false, follow: true } }),
     description: `Cheapest days to fly ${route.origin.city} (${route.origin.iata}) to ${route.destination.city} (${route.destination.iata}) over the next 3 months, in rand. Compare and book with trusted partners.`,
     alternates: { canonical: `/flights/${route.slug}` },
     openGraph: { title, url: `/flights/${route.slug}` },
@@ -53,16 +57,7 @@ export default async function RoutePage({ params }: { params: Params }) {
   const route = getRouteBySlug((await params).slug);
   if (!route) notFound();
 
-  const provider = getFareProvider();
-  const months = upcomingMonths(3);
-  const byMonth = await Promise.all(
-    months.map(async (m) => ({
-      month: m,
-      fares: cheapestPerDay(
-        await provider.search({ origin: route.origin.iata, destination: route.destination.iata, depart: m, limit: 100 }),
-      ),
-    })),
-  );
+  const byMonth = await routeFaresByMonth(route);
 
   const all = byMonth.flatMap((m) => m.fares);
   const checkedAt = oldestCheck(all);

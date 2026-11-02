@@ -1,0 +1,36 @@
+name: Verify Travelpayouts
+
+# Live check of the fare API with the repo's secrets (npm run verify:travelpayouts): token, ZAR, airline
+# coverage, and any routes you list. Run it from the Actions tab whenever the token changes or a route page
+# shows "No recent fares". It also runs when the check itself changes, so edits are tested against real data.
+on:
+  workflow_dispatch:
+    inputs:
+      routes:
+        description: "Routes to inspect, e.g. CPT-BFN JNB-AMS (optional)"
+        required: false
+        default: ""
+  push:
+    paths:
+      - scripts/verify-travelpayouts.mjs
+      - .github/workflows/verify-travelpayouts.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+      TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
+      # Pushes check the routes that had no fares on 12 Oct 2026.
+      ROUTES: ${{ inputs.routes || 'CPT-BFN JNB-AMS JNB-ADD' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      # The script has no dependencies, so no npm ci.
+      - run: node scripts/verify-travelpayouts.mjs $ROUTES

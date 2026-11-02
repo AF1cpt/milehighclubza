@@ -53,6 +53,8 @@ export function formatCheckedAt(iso: string): string {
 const airlineNames: Record<string, string> = {
   FA: "FlySafair",
   "4Z": "Airlink",
+  GE: "LIFT",
+  "5Z": "CemAir",
   SA: "South African Airways",
   BA: "British Airways",
   EK: "Emirates",
@@ -64,6 +66,8 @@ const airlineNames: Record<string, string> = {
   TK: "Turkish Airlines",
   LH: "Lufthansa",
   MK: "Air Mauritius",
+  VS: "Virgin Atlantic",
+  TC: "Air Tanzania",
 };
 
 export function airlineName(code: string): string {

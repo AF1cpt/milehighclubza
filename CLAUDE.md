@@ -26,7 +26,9 @@ affiliate commission when users click out to a partner and book. We do NOT sell 
 
 ## Stack
 Next.js 15 (App Router, TS, Tailwind v4) on Cloudflare Workers Free via `@opennextjs/cloudflare` (pinned:
-1.20.10 pulls a `glob` with a high advisory) · Supabase Postgres (click + conversion logs) · Vitest 5 ·
+1.20.10 pulls a `glob` with a high advisory). Next 15 left its 2-year support window on 21 Oct 2026 and the adapter
+refuses to build it, so `cf:build` passes `--dangerouslyUseUnsupportedNextVersion` **temporarily**: upgrade to Next 16
+(supported to Oct 2027) and drop the flag · Supabase Postgres (click + conversion logs) · Vitest 5 ·
 GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets up GitHub Codespaces (Node 22 + Claude Code,
 `npm ci` on create, ports 3000 and 8787 for `cf:preview`). It's the default dev environment when local npm is blocked (e.g. corporate VPN).
 
@@ -41,6 +43,8 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
   `data-fares-checked` attribute on route pages, so keep it) or any page's HTML is over 120 KB. CPU per request
   grows with page size (measured: 89 KB ≈ 7.5 ms, 157 KB ≈ 11 ms), so keep pages lean. CI and Deploy run it
 - `npm run smoke:deploy -- <url>` — post-deploy checks (the Deploy workflow runs it)
+- `npm run snapshot:fares` — daily price history into Supabase `fare_snapshots` (`.github/workflows/snapshot-fares.yml`,
+  05:41 SAST). Scripts that need `src/` code are `.ts` run with `tsx`
 - `postcss` is pinned via `overrides` in package.json to a patched version — keep it until Next ships the fix
 
 ## Map
@@ -55,19 +59,24 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/app/go/route.ts` — validate → log click (sub-ID) → 302 to partner
 - `src/app/api/fares/route.ts` + `src/components/SearchResults.tsx` — search: static page, results fetched as JSON
 - `src/lib/fares/search.ts` — search validation and exact + flexible results (shared by API and client)
-- `src/app/flights/[slug]` — static route pages (rebuilt every 6h), price calendars, FAQ JSON-LD from real data only
+- `src/app/flights/[slug]` — static route pages (rebuilt every 6h), price calendars, FAQ JSON-LD from real data only.
+  A page with no fares is `noindex` and left out of the sitemap until fares return (`routeFaresByMonth`)
 - `src/app/december-holiday-flights` + `src/lib/festive.ts` + `src/data/festive.ts` — festive season page. Add each
   year's school dates to `schoolSummerBreak` from the gazetted DBE calendar (missing years just hide them)
 - `open-next.config.ts` · `wrangler.jsonc` · `.github/workflows/deploy.yml` — Cloudflare build, Worker, deploys
-- `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID
+- `docs/AZURE.md` — planned move to Azure (services needed, code changes, migration order); not built yet
+- `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID; `fare_snapshots` holds our
+  price history (`src/lib/fares/snapshot.ts`). Label anything built from it as past prices, never as current fares
 
 ## Open items to verify (do not guess)
-`npm run verify:travelpayouts` answers items 1 and 3 with live data. Run it whenever the token changes.
-1. Travelpayouts: `currency=zar` support, `sub_id` on the long `tp.media/r` link (the rest of the format matches the
-   dashboard's Create link, 12 Oct 2026), payout methods for SA residents.
+`npm run verify:travelpayouts` (or GitHub → Actions → Verify Travelpayouts, which has the secrets) answers items 1 and
+3 with live data. Run it whenever the token changes; pass routes (`-- CPT-BFN`) to see why a page has no fares.
+1. Travelpayouts: whether Aviasales honours `currency=zar` in its search URL (the fare API does return ZAR; a test click
+   on 12 Oct 2026 showed USD), `sub_id` on the long `tp.media/r` link (the rest of the format matches the dashboard's
+   Create link), payout methods for SA residents.
 2. Travelstart (Impact): sub-ID param (`subId1`?), deep-link URL format for a specific search, attribution window.
-3. Whether Aviasales data includes LIFT domestic fares (FlySafair is in: seen live on JNB–CPT, 12 Oct 2026). If not,
-   show "check airline direct" notes.
+3. Domestic airlines: answered 12 Oct 2026. FlySafair (FA), LIFT (GE), SAA, CemAir and Airlink (4Z) are all in the data
+   (Airlink only in some months, e.g. JNB–CPT from Feb 2027). Re-check if a carrier seems to vanish.
 
 ## Conventions
 - Server components by default; `"use client"` only for interactive bits.
