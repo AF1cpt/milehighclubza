@@ -8,9 +8,19 @@ migrate in. Facts and prices were checked on 2 Nov 2026 (sources at the end); pr
 
 **Decisions so far (owner, 2 Nov 2026)**
 - **Database:** self-hosted Supabase on Azure.
-- **Hosting:** whatever is best for the app; budget isn't the constraint (250K Azure budget).
+- **Hosting:** whatever is best for the app; budget isn't the constraint.
+- **Budget:** **US$250,000** of Azure credit on our mentor's subscription (**AI BIZZHIVE**).
 - **Repo:** private, in `CCC-capecodecollective`.
-- **Azure account:** not chosen yet.
+- **Staging environment:** decide later.
+
+**Because the subscription belongs to our mentor**
+- Ask for **Owner on our own resource groups** (`rg-fares-za`, `rg-fares-za-data`), not the whole subscription. Then
+  we can manage our resources and give access without touching anything else on it.
+- Set the **budget alerts on our resource groups** and send them to our own email, so we see our spend separately.
+- Find out **when the credit expires** and what happens to running resources after that. Plan the move to our own
+  subscription before then.
+- Keep **everything as code** (Bicep or Terraform, code change 7), so the whole setup can be rebuilt in another
+  subscription if needed.
 
 ## The short version
 
@@ -189,10 +199,20 @@ Database code (`src/lib/clicks.ts`, `scripts/snapshot-fares.ts`) does **not** ch
 
 ## Still to decide
 
-1. **Azure account:** an existing Cape Code Collective subscription (where the 250K budget sits?) or a new one?
-   Which currency is the 250K in (rand or US dollars)? It sets the budget alerts.
-2. **Front Door tier:** Standard now (custom WAF rules), Premium only if bots or abuse show up?
-3. **Staging environment:** now, or once a second developer joins?
+1. **Front Door: yes or no, and which tier.**
+   - **What it is:** Azure's front entrance for the site, sitting between visitors and our app. It handles the domain
+     and HTTPS certificate, caches pages close to visitors, and blocks abuse with firewall rules. Abuse here means,
+     for example, bots hammering `/go` with fake clicks or `/api/fares` to use up our Travelpayouts quota. Cloudflare
+     did this for us before.
+   - **Without it:** Container Apps can still serve the domain with a free certificate, but there's no edge cache and
+     no firewall in front.
+   - **Recommendation:** Standard ($35/month base) now. Premium ($330/month) only if bots or attacks show up.
+2. **Staging environment:** later, as decided.
+   - **What staging means:** a second copy of the site where changes are tried before real visitors see them.
+   - **What we have without it:** each deploy is a new Container Apps revision that gets 0% of traffic until its
+     smoke test passes, then the switch; rollback is instant.
+   - **When to add it:** when several people change the code, or before risky changes such as Supabase upgrades and
+     database changes.
 
 ## Sources (checked 2 Nov 2026)
 
