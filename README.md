@@ -229,6 +229,7 @@ open-next.config.ts · wrangler.jsonc   Cloudflare Workers build and Worker conf
 .github/workflows/                CI (every push/PR) and Deploy (after green CI on main, every 6h, manual)
 tests/                            Vitest suites (one per module)
 docs/ROADMAP.md                   What to build next, and at what traffic level
+docs/AZURE.md                     Planned move to Azure: services needed, code changes, migration order
 CLAUDE.md                         Rules and map for Claude Code
 ```
 

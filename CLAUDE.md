@@ -64,6 +64,7 @@ GitHub Actions CI + scheduled Deploy. Node 22 (`.nvmrc`). `.devcontainer/` sets 
 - `src/app/december-holiday-flights` + `src/lib/festive.ts` + `src/data/festive.ts` — festive season page. Add each
   year's school dates to `schoolSummerBreak` from the gazetted DBE calendar (missing years just hide them)
 - `open-next.config.ts` · `wrangler.jsonc` · `.github/workflows/deploy.yml` — Cloudflare build, Worker, deploys
+- `docs/AZURE.md` — planned move to Azure (services needed, code changes, migration order); not built yet
 - `supabase/migrations/` — schema; `revenue_by_page` view joins clicks↔conversions on sub-ID; `fare_snapshots` holds our
   price history (`src/lib/fares/snapshot.ts`). Label anything built from it as past prices, never as current fares
 
