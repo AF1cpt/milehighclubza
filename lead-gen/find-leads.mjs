@@ -2,7 +2,8 @@
 // No scraping. Usage: GOOGLE_PLACES_API_KEY=... node lead-gen/find-leads.mjs [--max-per-query=40]
 import { writeFileSync, mkdirSync } from "node:fs";
 
-const KEY = process.env.GOOGLE_PLACES_API_KEY;
+// The cloud proxy can inject the key as a network secret; locally set GOOGLE_PLACES_API_KEY.
+const KEY = process.env.GOOGLE_PLACES_API_KEY || "proxy-injected";
 if (!KEY) {
   console.error("GOOGLE_PLACES_API_KEY is not set in this session. Add it in the environment settings and start a new session.");
   process.exit(2);
@@ -62,6 +63,7 @@ for (const p of seen.values()) {
   // Score is a heuristic: demand evidence (reviews x rating) plus no-site gap. Not a revenue forecast.
   const score = Math.round(Math.min(reviews, 300) * 0.25 + rating * 8 + (kind === "no_website" ? 20 : 10));
   leads.push({
+    id: p.id,
     name: p.displayName?.text ?? "", category: p.primaryTypeDisplayName?.text ?? p._cat, area: p._area,
     address: p.formattedAddress ?? "", phone, web_status: kind, website: web, rating, reviews, score,
     maps: p.googleMapsUri ?? "", hours: (p.regularOpeningHours?.weekdayDescriptions ?? []).join(" | "),
